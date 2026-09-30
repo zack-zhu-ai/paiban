@@ -1,0 +1,1535 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>护理排班表</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="排班">
+<meta name="theme-color" content="#2f5d8a">
+<style>
+:root{
+  --bg:#f3f5f8; --panel:#fff; --text:#1f2933; --muted:#6b7785; --line:#dde2e8; --line-strong:#bcc4ce;
+  --primary:#2f5d8a; --primary-weak:#e7eef6;
+  --red:#d32f2f; --red-weak:#fde4e1; --orange:#e67700; --orange-weak:#ffe3c2; --yellow:#f2c200; --yellow-weak:#fff3a0;
+  --green:#2e7d32; --blue:#1a5fb4;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;-webkit-text-size-adjust:100%}
+button{font:inherit;cursor:pointer;border:1px solid var(--line-strong);background:#fff;color:var(--text);border-radius:8px;padding:7px 14px;min-height:40px;touch-action:manipulation;white-space:nowrap}
+button:active{filter:brightness(.95)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+button.danger{color:var(--red);border-color:#efb3ad}
+button.link{border:none;background:none;color:var(--primary);padding:2px 6px;min-height:0;text-decoration:underline}
+button.sm{min-height:32px;padding:4px 10px;font-size:14px}
+input,select,textarea{font:inherit;border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;min-height:40px;background:#fff;color:var(--text);max-width:100%}
+input[type=number]{width:110px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.topbar{position:sticky;top:0;z-index:30;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.sync-chip{font-size:13px;min-height:30px;padding:3px 10px;border-radius:999px;font-weight:600}
+.sync-chip.grey{color:#6b7785;background:#f1f3f5;border-color:#dde2e8}
+.sync-chip.green{color:var(--green);background:#e8f5e9;border-color:#b9dfbb}
+.sync-chip.blue{color:var(--blue);background:#e6effb;border-color:#b8cdef}
+.sync-chip.orange{color:#b35c00;background:#fff1de;border-color:#f5cf9c}
+.sync-chip.red{color:var(--red);background:var(--red-weak);border-color:#f2b0a9}
+.weekbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px 6px}
+#weekLabel{font-weight:700;font-size:17px;margin-left:4px}
+.tag-now{background:var(--primary);color:#fff;border-radius:6px;font-size:12px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+#periodInfo{padding:2px 16px 10px;display:flex;flex-wrap:wrap;gap:6px;font-size:14px}
+.pi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 10px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.pi.hol{background:#e9f6f3;border-color:#bfe3da}
+.pi.none{color:var(--muted)}
+.pi.alert{background:var(--red-weak);border-color:#f2b0a9;color:var(--red);font-weight:600}
+main{padding:0 16px 12px}
+.table-wrap{overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 210px);max-height:calc(100dvh - 210px);min-height:260px}
+table#grid{border-collapse:separate;border-spacing:0;width:100%;min-width:740px;table-layout:fixed}
+#grid th,#grid td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;vertical-align:middle;padding:0}
+#grid thead th{background:#f6f8fa;padding:6px 2px;font-weight:600;position:sticky;top:0;z-index:3}
+#grid th.name{position:sticky;left:0;z-index:2;background:#fff;padding:4px 2px}
+#grid thead th.name-h{position:sticky;left:0;top:0;z-index:4;background:#f6f8fa}
+.dnum{font-size:16px}
+.wd{font-size:13px;color:var(--muted);font-weight:500}
+.issues{font-size:12px;font-weight:700;margin-top:1px}
+#grid th.day-h.holiday{background:#e4f4f0}
+#grid th.day-h.none{background:#f1f2f4;color:#9aa3ae}
+#grid th.warn-red{background:var(--red-weak)}
+#grid th.warn-red .issues{color:var(--red)}
+#grid th.warn-orange{background:var(--orange-weak)}
+#grid th.warn-orange .issues{color:#b35c00}
+#grid th.today{box-shadow:inset 0 -3px 0 var(--primary)}
+#grid th.today .dnum{color:var(--primary)}
+.tag-legal{background:var(--red);color:#fff;font-size:11px;border-radius:4px;padding:0 4px;margin-left:3px;vertical-align:2px}
+.tag-temp{background:#eceff3;color:#6b7785;font-size:11px;border-radius:4px;padding:0 4px;margin-left:3px;font-weight:500;vertical-align:2px}
+.tag-hol{font-size:11px;color:#00695c}
+.nm{font-size:16px;font-weight:700}
+#grid th.name.warn-orange{background:var(--orange-weak)}
+#grid th.name.warn-yellow{background:var(--yellow-weak)}
+.b{display:inline-block;font-size:11px;border-radius:4px;padding:0 4px;margin:2px 1px 0;font-weight:700;line-height:17px}
+.b-orange{background:var(--orange);color:#fff}
+.b-yellow{background:var(--yellow);color:#3b2f00}
+#grid td.c{height:62px;cursor:pointer;background:#fff}
+#grid td.c:active{filter:brightness(.93)}
+.sh{font-size:22px;font-weight:700;line-height:1.1;min-height:24px}
+.mk{font-size:11px;margin-top:3px;display:flex;gap:3px;justify-content:center;min-height:0}
+.mj,.mx{border-radius:4px;padding:0 3px;font-weight:700;line-height:16px}
+.mj{color:#b3261e;background:#fde7e4}
+.mx{color:#1a5fb4;background:#e1ecfb}
+.s-bai{background:#fff7dc !important;color:#8a6400}
+.s-zhu{background:#e2efff !important;color:#0b4f9c}
+.s-ye{background:#ebe4fb !important;color:#4b2a9b}
+.s-xia{background:#f1f2f4 !important;color:#6b7280}
+.s-xiu{color:#9aa3ae}
+.s-zhi{background:#d9f1ec !important;color:#00695c}
+#grid td.hol{background:#f5fbf9}
+#grid td.off{background:repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7 6px,#eceef1 6px,#eceef1 12px);cursor:not-allowed}
+#grid td.locked{background:repeating-linear-gradient(45deg,#fdf0ef,#fdf0ef 6px,#f8e1df 6px,#f8e1df 12px) !important;cursor:not-allowed}
+#grid tr.sealed th.name,#grid tr.sealed td{opacity:.45;filter:grayscale(1)}
+#grid td.sum{background:#fafbfc}
+.sn{font-size:19px;font-weight:700;line-height:1.15}
+.sq{font-size:11px;color:var(--muted);line-height:1.3}
+#grid td.bal{font-size:19px;font-weight:700;background:#fafbfc}
+.neg{color:var(--red)}
+.red{color:var(--red) !important}
+.blue{color:var(--blue)}
+.muted{color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);padding:8px 16px 24px;align-items:center}
+.legend .lg{display:inline-flex;align-items:center;gap:4px}
+.legend .sw{display:inline-block;min-width:22px;height:18px;border-radius:4px;text-align:center;font-weight:700;line-height:18px;border:1px solid var(--line)}
+.welcome{padding:32px 24px;max-width:640px;margin:0 auto;line-height:1.9}
+.welcome h2{margin:0 0 8px}
+/* 弹窗 */
+.modal-wrap{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}
+.modal{background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.modal.wide{max-width:980px}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 18px;border-bottom:1px solid var(--line);gap:8px}
+.modal-h h2{margin:0;font-size:18px}
+.modal-h .x{border:none;font-size:28px;line-height:1;padding:2px 12px;background:none;color:var(--muted)}
+.modal-b{padding:14px 18px 18px;overflow:auto;-webkit-overflow-scrolling:touch}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:8px 0}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+label.f.grow{flex:1;min-width:160px}
+label.f input,label.f select{color:var(--text)}
+.sec-t{font-weight:700;font-size:15px;margin:18px 0 6px;padding-top:12px;border-top:1px solid var(--line)}
+.sec-t.first{border-top:none;margin-top:0;padding-top:0}
+.hint{font-size:13px;color:var(--muted);margin:6px 0}
+.err{color:var(--red);font-size:14px;font-weight:600;margin:6px 0;min-height:1em}
+.warnbox{background:#fff4e0;border:1px solid #f5cf9c;color:#8a4b00;border-radius:8px;padding:8px 12px;font-size:14px;margin:8px 0}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:inline-block;padding:8px 16px;cursor:pointer;min-height:40px;line-height:24px;background:#fff}
+.seg label+label span{border-left:1px solid var(--line-strong)}
+.seg input:checked+span{background:var(--primary);color:#fff}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.btns.end{justify-content:flex-end}
+.btns-col{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:middle}
+.tbl th{background:#f6f8fa;font-weight:600;position:sticky;top:0}
+.tbl td.num,.tbl th.num{text-align:right}
+.tbl tr.total td{font-weight:700;background:#f8fafc}
+.tbl tr.revoked td{color:#9aa3ae;text-decoration:line-through}
+.tbl tr.revoked td.ops{text-decoration:none}
+.tbl .dates{font-size:12px;color:var(--muted);letter-spacing:-.2px;word-break:break-word}
+.scroll{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:34px;padding:4px 10px;border-radius:999px;background:#f3f5f8;border-color:var(--line)}
+.dchip{display:inline-flex;align-items:center;gap:2px;background:#fdecea;border:1px solid #f4c3bd;border-radius:999px;padding:2px 4px 2px 10px;font-size:13px}
+.dchip button{border:none;background:none;min-height:28px;padding:0 6px;color:var(--red);font-size:16px}
+.plist{display:flex;flex-direction:column;gap:6px}
+.prow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:#fff}
+.prow.dragging{box-shadow:0 6px 18px rgba(0,0,0,.18);border-color:var(--primary);position:relative;z-index:2}
+.prow .handle{font-size:22px;color:#9aa3ae;padding:4px 8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.prow .pinfo{flex:1;min-width:0}
+.prow .pinfo .small{font-size:12px;color:var(--muted)}
+.plist.sealed .prow{background:#f5f6f8;color:#9aa3ae}
+.tag{display:inline-block;font-size:12px;border-radius:5px;padding:0 6px;background:#eef2f6;color:#4a5563;margin-left:4px}
+.tag.temp{background:#fff1de;color:#8a4b00}
+/* 选班面板 */
+.picker .modal{max-width:520px}
+.pk-sub{font-size:14px;color:var(--muted);margin-bottom:10px}
+.shift-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.shift-btns.two{grid-template-columns:repeat(2,1fr)}
+.shift-btns .sb{height:72px;font-size:28px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;background:#fff}
+.shift-btns .sb small{font-size:11px;font-weight:500;opacity:.75}
+.shift-btns .sb.on{outline:3px solid var(--primary);outline-offset:1px}
+.mark-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.mark-row .mt{min-width:92px;display:flex;flex-direction:column;align-items:center;line-height:1.15;padding:4px 10px}
+.mark-row .mt b{font-size:18px}
+.mark-row .mt small{font-size:11px;color:var(--muted)}
+.mark-row .mt.on.m-j{background:#fde7e4;border-color:#e59a90;color:#b3261e}
+.mark-row .mt.on.m-x{background:#e1ecfb;border-color:#98b6e6;color:#1a5fb4}
+.mark-row .note{width:72px;text-align:center;font-size:18px}
+.pk-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.pk-foot .sp{flex:1}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.chk input{width:20px;height:20px;min-height:0}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.cmp>div{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+details{margin:8px 0;font-size:14px}
+details summary{cursor:pointer;color:var(--primary)}
+details ol{padding-left:20px;margin:8px 0;line-height:1.8}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1f2933;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;z-index:200;max-width:90vw;box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.err{background:var(--red)}
+@media (max-width:700px){
+  .topbar{padding:8px 12px}
+  .brand{font-size:18px}
+  .actions button{padding:6px 10px;font-size:14px;min-height:36px}
+  .weekbar,#periodInfo,main,.legend{padding-left:12px;padding-right:12px}
+  .cmp{grid-template-columns:1fr}
+  .shift-btns .sb{height:60px;font-size:24px}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span id="appTitle">护理排班表</span><button id="syncChip" class="sync-chip grey">● 本地模式</button></div>
+  <nav class="actions">
+    <button class="primary" data-act="schedule">开始排班</button>
+    <button data-act="people">人员</button>
+    <button data-act="adjust">调整加班</button>
+    <button data-act="field">外勤记录</button>
+    <button data-act="legal">法定假加班费</button>
+    <button data-act="night">夜班看板</button>
+    <button data-act="exam">体检看板</button>
+    <button data-act="export">导出Excel</button>
+    <button data-act="settings">设置</button>
+  </nav>
+</header>
+<section class="weekbar">
+  <button id="prevWeek">◀ 上一周</button>
+  <button id="thisWeek">本周</button>
+  <button id="nextWeek">下一周 ▶</button>
+  <input type="date" id="jumpDate" aria-label="跳转到日期">
+  <span id="weekLabel"></span>
+</section>
+<section id="periodInfo"></section>
+<main><div class="table-wrap" id="gridWrap"><table id="grid"></table></div></main>
+<div class="legend">
+  <span class="lg"><span class="sw s-bai">白</span>1班</span>
+  <span class="lg"><span class="sw s-zhu">主</span>1班</span>
+  <span class="lg"><span class="sw s-ye">夜</span>2班</span>
+  <span class="lg"><span class="sw s-xia">下</span>0</span>
+  <span class="lg"><span class="sw s-xiu">休</span>0</span>
+  <span class="lg"><span class="sw s-zhi">值</span>公休全天3班</span>
+  <span class="lg"><span class="sw" style="background:var(--red-weak)"></span>当天缺主班/夜班</span>
+  <span class="lg"><span class="sw" style="background:var(--orange-weak)"></span>表头：当天主班或夜班超过1人；姓名：本周夜班不是1个</span>
+  <span class="lg"><span class="sw" style="background:var(--yellow-weak)"></span>姓名：本周主班不是1个</span>
+  <span class="lg"><span class="tag-legal">法</span>法定假</span>
+  <span class="lg"><span class="tag-temp">临</span>临时人员</span>
+</div>
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+/* ================= 常量 ================= */
+const APP_VERSION = '1.0.0';
+const GH_DEFAULT = { owner: 'zack-zhu-ai', repo: 'paiban-data', branch: 'main', path: 'data.json', token: '' };
+const SHIFT_VALUE = { '白': 1, '主': 1, '夜': 2, '下': 0, '休': 0, '值': 3 };
+const SHIFT_CLS = { '白': 'bai', '主': 'zhu', '夜': 'ye', '下': 'xia', '休': 'xiu', '值': 'zhi' };
+const REGULAR_SHIFTS = ['白', '主', '夜', '下', '休'];
+const HOLIDAY_SHIFTS = ['值', '休'];
+const PAY_SHIFTS = ['白', '主', '夜', '值'];
+const WEEKDAYS = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+const WD_SHORT = ['一', '二', '三', '四', '五', '六', '日'];
+const FULL_WEEK_QUOTA = 5;
+const LS = { data: 'paiban.data.v1', meta: 'paiban.meta.v1', gh: 'paiban.gh.v1', pref: 'paiban.pref.v1' };
+
+/* ================= 工具 ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function round1(n) { return Math.round(n * 10) / 10; }
+function fmtNum(n) { n = round1(Number(n) || 0); return Number.isInteger(n) ? String(n) : n.toFixed(1); }
+function firstChar(s) { return Array.from(String(s || '').trim())[0] || ''; }
+function lsGet(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { toast('本机保存失败：' + e.message, true); return false; } }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function isHalfStep(n) { return Number.isFinite(n) && Math.abs(n * 2 - Math.round(n * 2)) < 1e-9; }
+
+const pad = n => String(n).padStart(2, '0');
+function toKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function fromKey(k) { const a = k.split('-').map(Number); return new Date(a[0], a[1] - 1, a[2]); }
+function addDays(k, n) { const d = fromKey(k); d.setDate(d.getDate() + n); return toKey(d); }
+function weekStart(k) { const d = fromKey(k); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return toKey(d); }
+function weekdayIdx(k) { return (fromKey(k).getDay() + 6) % 7; }
+function todayKey() { return toKey(new Date()); }
+function rangeDays(a, b) { const out = []; for (let k = a; k <= b; k = addDays(k, 1)) out.push(k); return out; }
+function maxK(a, b) { return a > b ? a : b; }
+function minK(a, b) { return a < b ? a : b; }
+function fmtMD(k) { const d = fromKey(k); return (d.getMonth() + 1) + '.' + d.getDate(); }
+function fmtMDcn(k) { const d = fromKey(k); return (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
+function fmtYMD(k) { return k.replace(/-/g, '.'); }
+function fmtShort(k) { return k.slice(2); }
+function monthRange(k) { const d = fromKey(k); return [toKey(new Date(d.getFullYear(), d.getMonth(), 1)), toKey(new Date(d.getFullYear(), d.getMonth() + 1, 0))]; }
+function hhmm(ts) { const d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function fmtTime(iso) { if (!iso) return '—'; const d = new Date(iso); return toKey(d) + ' ' + hhmm(d); }
+function isValidKey(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k || ''); }
+
+let toastTimer = null;
+function toast(msg, isErr) { const el = $('#toast'); el.textContent = msg; el.className = 'toast show' + (isErr ? ' err' : ''); clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className = 'toast'; }, isErr ? 4200 : 2400); }
+
+/* ================= 数据 ================= */
+function emptyData() {
+  return {
+    version: 1, rev: 0, title: '护理排班表',
+    people: [],        // {id,name,type:'resident'|'temp',sealed,sealedAt,initBalance,since}
+    periods: [],       // {id,type:'regular'|'holiday',start,end,quota(公休假应上班次)}
+    weekQuotas: {},    // 周一日期 -> 不完整周的满勤班次
+    cells: {},         // 日期 -> {人员id: {s:班次, a:1 自动带出, j:教备注, x:学备注}}
+    adjustments: [],   // {id,date,pid,amount,reason,batch,createdAt,revoked,revokedAt}
+    fieldwork: [],     // {id,date,pid,qty,note,createdAt}
+    legalDays: [],     // 法定假日期
+    rates: [{ from: '2000-01-01', '白': 50, '主': 50, '夜': 100, '值': 150 }],
+    updatedAt: null
+  };
+}
+function normalize(d) {
+  const e = emptyData();
+  d = d && typeof d === 'object' ? d : {};
+  for (const k in e) if (d[k] === undefined || d[k] === null) d[k] = e[k];
+  if (!Array.isArray(d.rates) || !d.rates.length) d.rates = e.rates;
+  d.rates.sort((a, b) => a.from < b.from ? -1 : 1);
+  d.periods.sort((a, b) => a.start < b.start ? -1 : 1);
+  d.legalDays = Array.from(new Set(d.legalDays)).sort();
+  return d;
+}
+
+let D = normalize(lsGet(LS.data) || emptyData());
+let META = Object.assign({ dirty: false, sha: null, lastSync: null }, lsGet(LS.meta) || {});
+let PREF = Object.assign({ autoNext: false }, lsGet(LS.pref) || {});
+let VER = 0, LOCAL_REV = 0;
+const UI = { week: weekStart(todayKey()) };
+
+function commit() {
+  D.rev = (D.rev || 0) + 1;
+  D.updatedAt = new Date().toISOString();
+  VER++; LOCAL_REV++;
+  lsSet(LS.data, D);
+  META.dirty = true; lsSet(LS.meta, META);
+  render();
+  Sync.schedule();
+}
+function replaceData(nd) { D = normalize(nd); VER++; lsSet(LS.data, D); render(); }
+
+function personById(id) { return D.people.find(p => p.id === id); }
+function getCell(date, pid) { const r = D.cells[date]; return r ? r[pid] : undefined; }
+function cellEmpty(c) { return !c || (!c.s && c.j === undefined && c.x === undefined); }
+function setCellRaw(date, pid, cell) {
+  if (cellEmpty(cell)) {
+    if (D.cells[date]) { delete D.cells[date][pid]; if (!Object.keys(D.cells[date]).length) delete D.cells[date]; }
+    return;
+  }
+  if (!D.cells[date]) D.cells[date] = {};
+  D.cells[date][pid] = cell;
+}
+function periodOf(date) { for (const p of D.periods) if (date >= p.start && date <= p.end) return p; return null; }
+function dayType(date) { const p = periodOf(date); return p ? p.type : null; }
+function overlapping(start, end, excludeId) { return D.periods.find(p => p.id !== excludeId && !(end < p.start || start > p.end)); }
+function isLegal(date) { return D.legalDays.indexOf(date) >= 0; }
+function rateOn(date) { let r = D.rates[0]; for (const x of D.rates) if (x.from <= date) r = x; return r; }
+function periodLabel(p) { return (p.type === 'holiday' ? '公休假 ' : '常规班次 ') + fmtYMD(p.start) + ' – ' + fmtYMD(p.end).slice(5); }
+
+/* ================= 计算 ================= */
+function weekInfo(ws) {
+  const days = [], types = [];
+  for (let i = 0; i < 7; i++) { const d = addDays(ws, i); days.push(d); types.push(dayType(d)); }
+  const regDays = days.filter((d, i) => types[i] === 'regular');
+  const holDays = days.filter((d, i) => types[i] === 'holiday');
+  const full = regDays.length === 7;
+  let quota = null, needQuota = false;
+  if (full) quota = FULL_WEEK_QUOTA;
+  else if (regDays.length) {
+    const q = D.weekQuotas[ws];
+    if (q === undefined || q === null || q === '' || isNaN(Number(q))) needQuota = true; else quota = Number(q);
+  }
+  return { ws, days, types, regDays, holDays, full, quota, needQuota };
+}
+function personWeek(p, wi) {
+  let total = 0, reg = 0, hol = 0, nights = 0, mains = 0;
+  wi.days.forEach((d, i) => {
+    const t = wi.types[i]; if (!t) return;
+    const c = getCell(d, p.id); if (!c || !c.s) return;
+    const v = SHIFT_VALUE[c.s] || 0; total += v;
+    if (t === 'regular') { reg += v; if (c.s === '夜') nights++; if (c.s === '主') mains++; }
+    else hol += v;
+  });
+  return { total, reg, hol, nights, mains };
+}
+function holidayActual(p, pr) {
+  let n = 0;
+  for (const d in D.cells) { if (d < pr.start || d > pr.end) continue; const c = D.cells[d][p.id]; if (c && c.s) n += SHIFT_VALUE[c.s] || 0; }
+  return n;
+}
+function personActiveWeek(p, ws) {
+  if (p.since && ws < weekStart(p.since)) return false;
+  if (p.sealed && p.sealedAt && ws > weekStart(p.sealedAt)) return false;
+  return true;
+}
+let ledgerCache = null;
+function ledger() {
+  if (ledgerCache && ledgerCache.v === VER) return ledgerCache;
+  const weeks = new Set();
+  D.periods.forEach(pr => { for (let w = weekStart(pr.start); w <= pr.end; w = addDays(w, 7)) weeks.add(w); });
+  const wis = {}; weeks.forEach(w => { wis[w] = weekInfo(w); });
+  const per = {};
+  for (const p of D.people) {
+    if (p.type !== 'resident') continue;
+    const ev = [];
+    for (const w in wis) {
+      const wi = wis[w];
+      if (!wi.regDays.length || wi.quota === null || !personActiveWeek(p, w)) continue;
+      ev.push({ ws: w, amt: personWeek(p, wi).reg - wi.quota });
+    }
+    for (const pr of D.periods) {
+      if (pr.type !== 'holiday') continue;
+      const w = weekStart(pr.start);
+      if (!personActiveWeek(p, w)) continue;
+      ev.push({ ws: w, amt: holidayActual(p, pr) - Number(pr.quota || 0) });
+    }
+    for (const a of D.adjustments) if (a.pid === p.id && !a.revoked) ev.push({ ws: weekStart(a.date), amt: Number(a.amount) || 0 });
+    per[p.id] = ev;
+  }
+  ledgerCache = { v: VER, per, wis };
+  return ledgerCache;
+}
+function balanceAt(p, ws) {
+  const ev = ledger().per[p.id] || [];
+  let b = Number(p.initBalance) || 0;
+  for (const e of ev) if (e.ws <= ws) b += e.amt;
+  return round1(b);
+}
+function dayCoverage(date) {
+  const t = dayType(date); if (!t) return null;
+  const row = D.cells[date] || {};
+  let zhu = 0, ye = 0, zhi = 0;
+  for (const pid in row) { if (!personById(pid)) continue; const s = row[pid].s; if (s === '主') zhu++; else if (s === '夜') ye++; else if (s === '值') zhi++; }
+  const issues = []; let level = null;
+  if (t === 'holiday') {
+    if (zhi === 0) { issues.push('缺值班'); level = 'red'; } else if (zhi > 1) { issues.push('值×' + zhi); level = 'orange'; }
+  } else {
+    if (zhu === 0) issues.push('缺主'); if (ye === 0) issues.push('缺夜');
+    if (issues.length) level = 'red';
+    if (zhu > 1) { issues.push('主×' + zhu); level = level || 'orange'; }
+    if (ye > 1) { issues.push('夜×' + ye); level = level || 'orange'; }
+  }
+  return { level, issues };
+}
+function personWeekWarnings(p, wi, s) {
+  const out = [];
+  if (p.type !== 'resident' || !wi.full || !personActiveWeek(p, wi.ws)) return out;
+  if (s.nights !== 1) out.push({ level: 'orange', text: s.nights === 0 ? '无夜班' : '夜×' + s.nights });
+  if (s.mains !== 1) out.push({ level: 'yellow', text: s.mains === 0 ? '无主班' : '主×' + s.mains });
+  return out;
+}
+function holidayPeriodsIn(days) { const seen = []; days.forEach(d => { const p = periodOf(d); if (p && p.type === 'holiday' && seen.indexOf(p) < 0) seen.push(p); }); return seen; }
+function visiblePeople(wi) {
+  const act = D.people.filter(p => !p.sealed);
+  const sealed = D.people.filter(p => p.sealed && wi.days.some(d => !cellEmpty(getCell(d, p.id))));
+  return act.concat(sealed);
+}
+function isEditable(d) { const t = dayType(d); if (!t) return false; if (t === 'regular' && weekInfo(weekStart(d)).needQuota) return false; return true; }
+function simulatedPartialWeeks(start, end, excludeId) {
+  const out = [];
+  for (let w = weekStart(start); w <= end; w = addDays(w, 7)) {
+    let n = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(w, i);
+      if (d >= start && d <= end) n++;
+      else { const p = periodOf(d); if (p && p.id !== excludeId && p.type === 'regular') n++; }
+    }
+    if (n < 7) out.push({ ws: w, days: n, from: maxK(start, w), to: minK(end, addDays(w, 6)) });
+  }
+  return out;
+}
+
+/* ================= 排班修改 ================= */
+function applyShift(date, pid, s) {
+  const old = getCell(date, pid) || {};
+  const prevS = old.s;
+  const cell = Object.assign({}, old);
+  delete cell.a;
+  if (s) cell.s = s; else delete cell.s;
+  setCellRaw(date, pid, cell);
+  const next = addDays(date, 1);
+  if (prevS === '夜' && s !== '夜') {
+    const nc = getCell(next, pid);
+    if (nc && nc.s === '下' && nc.a) { const n2 = Object.assign({}, nc); delete n2.s; delete n2.a; setCellRaw(next, pid, n2); }
+  }
+  if (s === '夜' && dayType(next) !== 'holiday') {
+    const nc = getCell(next, pid) || {};
+    if (!nc.s) setCellRaw(next, pid, Object.assign({}, nc, { s: '下', a: 1 }));
+  }
+  commit();
+}
+function setMark(date, pid, key, val) {
+  const cell = Object.assign({}, getCell(date, pid) || {});
+  if (val === null) delete cell[key]; else cell[key] = val;
+  setCellRaw(date, pid, cell);
+  commit();
+}
+// 清理失效的自动"下"，并给新加入排班的日子补上"下"
+function fixAutoXia(newDays) {
+  Object.keys(D.cells).forEach(d => {
+    Object.keys(D.cells[d] || {}).forEach(pid => {
+      const c = D.cells[d] && D.cells[d][pid];
+      if (!c || c.s !== '下' || !c.a) return;
+      const prev = getCell(addDays(d, -1), pid);
+      if (!prev || prev.s !== '夜' || dayType(d) === 'holiday') { const n = Object.assign({}, c); delete n.s; delete n.a; setCellRaw(d, pid, n); }
+    });
+  });
+  (newDays || []).forEach(d => {
+    if (dayType(d) !== 'regular') return;
+    D.people.forEach(p => {
+      const prev = getCell(addDays(d, -1), p.id), cur = getCell(d, p.id) || {};
+      if (prev && prev.s === '夜' && !cur.s) setCellRaw(d, p.id, Object.assign({}, cur, { s: '下', a: 1 }));
+    });
+  });
+}
+function countCells(days) { let n = 0; days.forEach(d => { if (D.cells[d]) n += Object.keys(D.cells[d]).length; }); return n; }
+
+/* ================= 主界面 ================= */
+function render() {
+  document.title = D.title;
+  $('#appTitle').textContent = D.title;
+  renderWeekbar();
+  renderPeriodInfo();
+  renderGrid();
+  Sync.renderChip();
+}
+function renderWeekbar() {
+  const ws = UI.week, we = addDays(ws, 6), t = todayKey();
+  const y = fromKey(ws).getFullYear();
+  $('#weekLabel').innerHTML = esc(y + '年' + fmtMDcn(ws) + ' – ' + fmtMDcn(we)) + (t >= ws && t <= we ? '<span class="tag-now">本周</span>' : '');
+  $('#jumpDate').value = ws;
+}
+function renderPeriodInfo() {
+  const wi = weekInfo(UI.week), el = $('#periodInfo');
+  const segs = []; let i = 0;
+  while (i < 7) { const p = periodOf(wi.days[i]); let j = i; while (j + 1 < 7 && periodOf(wi.days[j + 1]) === p) j++; segs.push({ p, from: wi.days[i], to: wi.days[j], n: j - i + 1 }); i = j + 1; }
+  const out = [];
+  if (!segs.some(s => s.p)) out.push('<div class="pi none">本周还没有排班，点上方「开始排班」创建</div>');
+  else {
+    segs.forEach(s => {
+      const rng = s.n === 7 ? '' : fmtMD(s.from) + (s.n > 1 ? '–' + fmtMD(s.to) : '') + ' ';
+      if (!s.p) out.push('<div class="pi none">' + rng + '未排班</div>');
+      else if (s.p.type === 'holiday') out.push('<div class="pi hol"><b>公休假</b> ' + rng + '· 全程 ' + fmtMD(s.p.start) + '–' + fmtMD(s.p.end) + ' 每人应上 <b>' + fmtNum(s.p.quota) + '</b> 班次 <button class="link" data-editp="' + s.p.id + '">修改</button></div>');
+      else out.push('<div class="pi"><b>常规班次</b> ' + rng + '</div>');
+    });
+    if (wi.regDays.length) {
+      if (wi.full) out.push('<div class="pi">完整周 · 满勤 <b>5</b> 班次</div>');
+      else if (wi.needQuota) out.push('<div class="pi alert">本周常规部分不是完整周（' + wi.regDays.length + ' 天），必须填写满勤班次，否则无法排班 <button class="primary sm" data-quota>填写满勤班次</button></div>');
+      else out.push('<div class="pi">不完整周（常规 ' + wi.regDays.length + ' 天）· 满勤 <b>' + fmtNum(wi.quota) + '</b> 班次 <button class="link" data-quota>修改</button></div>');
+    }
+  }
+  el.innerHTML = out.join('');
+  $$('[data-quota]', el).forEach(b => b.onclick = () => openWeekQuota(UI.week));
+  $$('[data-editp]', el).forEach(b => b.onclick = () => openEditPeriod(b.dataset.editp));
+}
+function marksHtml(c) {
+  const a = [];
+  if (c.j !== undefined) a.push('<span class="mj">教' + esc(c.j) + '</span>');
+  if (c.x !== undefined) a.push('<span class="mx">学' + esc(c.x) + '</span>');
+  return a.length ? '<div class="mk">' + a.join('') + '</div>' : '';
+}
+function renderGrid() {
+  const grid = $('#grid');
+  if (!D.people.length) {
+    grid.innerHTML = '<tbody><tr><td style="border:none"><div class="welcome"><h2>欢迎使用排班系统</h2>' +
+      '① 在「设置」里连接 GitHub，数据自动保存到云端，换设备不丢<br>' +
+      '② 在「人员」里添加人员，常驻人员填上现在的加班余额<br>' +
+      '③ 点「开始排班」选日期创建排班，然后点格子排班</div></td></tr></tbody>';
+    return;
+  }
+  const wi = weekInfo(UI.week), t = todayKey();
+  const people = visiblePeople(wi);
+  let h = '<colgroup><col style="width:104px">' + '<col>'.repeat(7) + '<col style="width:92px"><col style="width:74px"></colgroup>';
+  h += '<thead><tr><th class="name-h">姓名</th>';
+  wi.days.forEach((d, i) => {
+    const cov = dayCoverage(d);
+    const cls = ['day-h', wi.types[i] || 'none'];
+    if (cov && cov.level) cls.push('warn-' + cov.level);
+    if (d === t) cls.push('today');
+    h += '<th class="' + cls.join(' ') + '"><div class="dnum">' + fmtMD(d) + (isLegal(d) ? '<span class="tag-legal">法</span>' : '') + '</div>' +
+      '<div class="wd">' + WEEKDAYS[i] + (wi.types[i] === 'holiday' ? ' <span class="tag-hol">公休</span>' : '') + '</div>' +
+      (cov && cov.issues.length ? '<div class="issues">' + cov.issues.join(' ') + '</div>' : '') + '</th>';
+  });
+  h += '<th>本周班次</th><th>剩余加班</th></tr></thead><tbody>';
+  const holPs = holidayPeriodsIn(wi.days);
+  people.forEach(p => {
+    const s = personWeek(p, wi), isRes = p.type === 'resident';
+    const warns = personWeekWarnings(p, wi, s);
+    const nameCls = warns.some(w => w.level === 'orange') ? 'warn-orange' : warns.length ? 'warn-yellow' : '';
+    h += '<tr class="' + (p.sealed ? 'sealed' : '') + '"><th class="name ' + nameCls + '"><div class="nm">' + esc(p.name) + (p.type === 'temp' ? '<span class="tag-temp">临</span>' : '') + '</div>' +
+      warns.map(w => '<span class="b b-' + w.level + '">' + w.text + '</span>').join('') + '</th>';
+    wi.days.forEach((d, i) => {
+      const ty = wi.types[i], c = getCell(d, p.id) || {};
+      const cls = ['c'];
+      if (!ty) cls.push('off'); else if (ty === 'regular' && wi.needQuota) cls.push('locked');
+      if (ty === 'holiday') cls.push('hol');
+      if (ty && c.s) cls.push('s-' + SHIFT_CLS[c.s]);
+      h += '<td class="' + cls.join(' ') + '" data-d="' + d + '" data-p="' + p.id + '">' + (ty ? '<div class="sh">' + (c.s || '') + '</div>' + marksHtml(c) : '') + '</td>';
+    });
+    let sum = '<div class="sn">' + fmtNum(s.total) + '</div>';
+    if (isRes) {
+      const parts = []; let cls = '';
+      if (wi.regDays.length) {
+        if (wi.quota === null) parts.push('<span class="red">未填满勤</span>');
+        else {
+          if (s.reg < wi.quota) cls = 'red'; else if (s.reg > wi.quota) cls = 'blue';
+          parts.push(wi.holDays.length ? '常规' + fmtNum(s.reg) + '/应' + fmtNum(wi.quota) : '应上' + fmtNum(wi.quota));
+        }
+      }
+      holPs.forEach(hp => { const act = holidayActual(p, hp), q = Number(hp.quota) || 0; parts.push('<span class="' + (act < q ? 'red' : '') + '">公休' + fmtNum(act) + '/' + fmtNum(q) + '</span>'); });
+      sum = '<div class="sn ' + cls + '">' + fmtNum(s.total) + '</div><div class="sq">' + parts.join('<br>') + '</div>';
+    }
+    let bal = '<span class="muted">—</span>';
+    if (isRes) { const b = balanceAt(p, wi.ws); bal = '<span class="' + (b < 0 ? 'neg' : '') + '">' + fmtNum(b) + '</span>'; }
+    h += '<td class="sum">' + sum + '</td><td class="bal">' + bal + '</td></tr>';
+  });
+  h += '</tbody>';
+  grid.innerHTML = h;
+}
+function onGridClick(e) {
+  const td = e.target.closest('td.c'); if (!td) return;
+  const d = td.dataset.d, pid = td.dataset.p;
+  if (td.classList.contains('off')) { toast('这一天还没有排班，请先点「开始排班」创建'); return; }
+  if (td.classList.contains('locked')) { toast('本周不是完整周，请先填写满勤班次'); openWeekQuota(weekStart(d)); return; }
+  openPicker(d, pid);
+}
+function gotoWeek(k) { UI.week = weekStart(k); render(); }
+
+/* ================= 弹窗 ================= */
+function openModal(opt) {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-wrap ' + (opt.cls || '');
+  wrap.innerHTML = '<div class="modal ' + (opt.wide ? 'wide' : '') + '" role="dialog" aria-modal="true"><div class="modal-h"><h2></h2><button class="x" aria-label="关闭">×</button></div><div class="modal-b"></div></div>';
+  $('h2', wrap).textContent = opt.title || '';
+  const body = $('.modal-b', wrap);
+  if (opt.html) body.innerHTML = opt.html;
+  $('#modalRoot').appendChild(wrap);
+  let down = false;
+  const m = { el: wrap, body, close() { if (!wrap.isConnected) return; wrap.remove(); if (opt.onClose) opt.onClose(); } };
+  $('.x', wrap).onclick = () => m.close();
+  wrap.addEventListener('pointerdown', e => { down = e.target === wrap; });
+  wrap.addEventListener('click', e => { if (e.target === wrap && down) m.close(); down = false; });
+  wrap._modal = m;
+  return m;
+}
+function topModal() { const all = $$('#modalRoot .modal-wrap'); return all.length ? all[all.length - 1]._modal : null; }
+function confirmBox(msg, okText, danger) {
+  return new Promise(res => {
+    let done = false;
+    const m = openModal({ title: '请确认', onClose: () => { if (!done) res(false); } });
+    m.body.innerHTML = '<div style="white-space:pre-line;line-height:1.7">' + esc(msg) + '</div><div class="btns end"><button data-no>取消</button><button data-ok class="' + (danger ? 'danger' : 'primary') + '">' + esc(okText || '确定') + '</button></div>';
+    $('[data-no]', m.body).onclick = () => m.close();
+    $('[data-ok]', m.body).onclick = () => { done = true; m.close(); res(true); };
+  });
+}
+function alertBox(title, msg) {
+  const m = openModal({ title });
+  m.body.innerHTML = '<div style="white-space:pre-line;line-height:1.7">' + esc(msg) + '</div><div class="btns end"><button class="primary" data-ok>知道了</button></div>';
+  $('[data-ok]', m.body).onclick = () => m.close();
+}
+function rangeControls(prefix, a, b) {
+  return '<div class="row"><label class="f">开始日期<input type="date" id="' + prefix + 'A" value="' + a + '"></label>' +
+    '<label class="f">结束日期<input type="date" id="' + prefix + 'B" value="' + b + '"></label>' +
+    '<div class="chips"><button class="chip" data-q="week">本周</button><button class="chip" data-q="month">本月</button><button class="chip" data-q="lastmonth">上月</button><button class="chip" data-q="year">今年</button></div></div>';
+}
+function bindRange(root, prefix, onChange) {
+  const A = $('#' + prefix + 'A', root), B = $('#' + prefix + 'B', root);
+  const fire = () => { if (!A.value || !B.value) return; if (A.value > B.value) { const x = A.value; A.value = B.value; B.value = x; } onChange(A.value, B.value); };
+  A.onchange = fire; B.onchange = fire;
+  $$('[data-q]', root).forEach(btn => btn.onclick = () => {
+    const t = todayKey(); let r;
+    if (btn.dataset.q === 'week') { const a = weekStart(t); r = [a, addDays(a, 6)]; }
+    else if (btn.dataset.q === 'month') r = monthRange(t);
+    else if (btn.dataset.q === 'lastmonth') { const d = fromKey(t); d.setDate(1); d.setMonth(d.getMonth() - 1); r = monthRange(toKey(d)); }
+    else r = [t.slice(0, 4) + '-01-01', t.slice(0, 4) + '-12-31'];
+    A.value = r[0]; B.value = r[1]; fire();
+  });
+  return () => [A.value, B.value];
+}
+
+/* ================= 选班面板 ================= */
+function noteSuggestions(key) {
+  const freq = {};
+  for (const d in D.cells) for (const pid in D.cells[d]) { const v = D.cells[d][pid][key]; if (v) freq[v] = (freq[v] || 0) + 1; }
+  return Object.keys(freq).sort((a, b) => freq[b] - freq[a]).slice(0, 14);
+}
+function openPicker(date, pid) {
+  const p = personById(pid); if (!p) return;
+  const ty = dayType(date);
+  const opts = ty === 'holiday' ? HOLIDAY_SHIFTS : REGULAR_SHIFTS;
+  const m = openModal({ title: p.name + ' · ' + fmtMDcn(date) + ' ' + WEEKDAYS[weekdayIdx(date)], cls: 'picker' });
+  const markRow = (key, label, full, c) => {
+    const on = c[key] !== undefined;
+    return '<div class="mark-row" data-k="' + key + '"><button class="mt m-' + key + (on ? ' on' : '') + '" data-toggle><b>' + label + (on ? ' ✓' : '') + '</b><small>' + full + '</small></button>' +
+      '<input class="note" placeholder="备注" value="' + esc(on ? c[key] : '') + '" aria-label="' + full + '备注（1个字）">' +
+      '<div class="chips">' + noteSuggestions(key).map(s => '<button class="chip" data-chip="' + esc(s) + '">' + esc(s) + '</button>').join('') + '</div></div>';
+  };
+  const draw = () => {
+    const c = getCell(date, pid) || {};
+    m.body.innerHTML = '<div class="pk-sub">' + (ty === 'holiday' ? '公休假（值 = 全天，3 个班次）' : '常规班次') + (isLegal(date) ? ' · <span class="red">法定假</span>' : '') + (p.type === 'temp' ? ' · 临时人员' : '') + '</div>' +
+      '<div class="shift-btns ' + (opts.length === 2 ? 'two' : '') + '">' + opts.map(s => '<button class="sb s-' + SHIFT_CLS[s] + (c.s === s ? ' on' : '') + '" data-s="' + s + '">' + s + '<small>' + (SHIFT_VALUE[s] ? SHIFT_VALUE[s] + ' 班次' : '0 班次') + '</small></button>').join('') + '</div>' +
+      markRow('j', '教', '教职工体检', c) + markRow('x', '学', '学生体检', c) +
+      '<div class="pk-foot"><label class="chk"><input type="checkbox" data-auto ' + (PREF.autoNext ? 'checked' : '') + '>选完班次自动跳到下一天</label><span class="sp"></span><button class="danger" data-clear>清空班次</button><button class="primary" data-done>完成</button></div>';
+    $$('[data-s]', m.body).forEach(b => b.onclick = () => {
+      applyShift(date, pid, b.dataset.s);
+      if (PREF.autoNext) { const nx = nextEditable(date); m.close(); if (nx) openPicker(nx, pid); }
+      else m.close();
+    });
+    $('[data-clear]', m.body).onclick = () => { applyShift(date, pid, ''); m.close(); };
+    $('[data-done]', m.body).onclick = () => m.close();
+    $('[data-auto]', m.body).onchange = e => { PREF.autoNext = e.target.checked; lsSet(LS.pref, PREF); };
+    $$('.mark-row', m.body).forEach(row => {
+      const key = row.dataset.k, inp = $('.note', row);
+      let composing = false;
+      $('[data-toggle]', row).onclick = () => { const cur = getCell(date, pid) || {}; setMark(date, pid, key, cur[key] !== undefined ? null : firstChar(inp.value)); draw(); };
+      const takeInput = () => { const v = firstChar(inp.value); inp.value = v; setMark(date, pid, key, v); const btn = $('[data-toggle]', row); btn.classList.add('on'); $('b', btn).textContent = (key === 'j' ? '教' : '学') + ' ✓'; };
+      inp.addEventListener('compositionstart', () => { composing = true; });
+      inp.addEventListener('compositionend', () => { composing = false; takeInput(); });
+      inp.addEventListener('input', () => { if (!composing) takeInput(); });
+      $$('[data-chip]', row).forEach(ch => ch.onclick = () => { setMark(date, pid, key, ch.dataset.chip); draw(); });
+    });
+  };
+  draw();
+}
+function nextEditable(date) {
+  const we = addDays(weekStart(date), 6);
+  for (let d = addDays(date, 1); d <= we; d = addDays(d, 1)) if (isEditable(d)) return d;
+  return null;
+}
+
+/* ================= 开始排班 / 排班期间 ================= */
+function quotaInputsHtml(list, prefill) {
+  if (!list.length) return '';
+  return '<div class="warnbox">⚠ 以下不是完整周（完整周 = 周一到周日都是常规班次），必须填写这一周常规部分的满勤班次，用来计算加班：</div>' +
+    list.map(w => '<div class="row"><label class="f">' + fmtMD(w.ws) + '–' + fmtMD(addDays(w.ws, 6)) + ' 这周，常规班次共 ' + w.days + ' 天<input type="number" min="0" step="0.5" data-wq="' + w.ws + '" value="' + (prefill[w.ws] !== undefined ? esc(prefill[w.ws]) : '') + '" placeholder="满勤班次"></label></div>').join('');
+}
+function readQuotaInputs(root) {
+  const out = {}; let bad = false;
+  $$('[data-wq]', root).forEach(inp => { const v = inp.value.trim(); const n = Number(v); if (v === '' || !isHalfStep(n) || n < 0) bad = true; else out[inp.dataset.wq] = n; });
+  return bad ? null : out;
+}
+function openSchedule() {
+  const m = openModal({ title: '开始排班', wide: true });
+  const last = D.periods.length ? D.periods[D.periods.length - 1].end : null;
+  let start = last && last >= addDays(weekStart(todayKey()), -56) ? addDays(last, 1) : weekStart(todayKey());
+  let end = addDays(weekStart(start), 6);
+  m.body.innerHTML =
+    '<div class="sec-t first">新建排班</div>' +
+    '<div class="row"><label class="f">开始日期<input type="date" id="spA" value="' + start + '"></label><label class="f">结束日期<input type="date" id="spB" value="' + end + '"></label>' +
+    '<div class="chips"><span class="hint">快速设为：</span><button class="chip" data-w="1">1 周</button><button class="chip" data-w="2">2 周</button><button class="chip" data-w="4">4 周</button></div></div>' +
+    '<div class="row"><span class="seg"><label><input type="radio" name="spT" value="regular" checked><span>常规班次</span></label><label><input type="radio" name="spT" value="holiday"><span>公休假</span></label></span></div>' +
+    '<div id="spExtra"></div><div class="err" id="spErr"></div>' +
+    '<div class="btns"><button class="primary" id="spOk">创建排班</button></div>' +
+    '<div class="sec-t">已排期间</div><div id="spList"></div>';
+  const A = $('#spA', m.body), B = $('#spB', m.body), extra = $('#spExtra', m.body), err = $('#spErr', m.body);
+  const type = () => $('input[name=spT]:checked', m.body).value;
+  const refresh = () => {
+    err.textContent = '';
+    const a = A.value, b = B.value;
+    if (!isValidKey(a) || !isValidKey(b)) { extra.innerHTML = ''; return; }
+    if (a > b) { extra.innerHTML = ''; err.textContent = '结束日期不能早于开始日期'; return; }
+    const ov = overlapping(a, b);
+    if (ov) { extra.innerHTML = ''; err.textContent = '和已有的「' + periodLabel(ov) + '」重叠。请先在下方「已排期间」里把原来的期间缩短，再创建。'; return; }
+    const kept = {}; $$('[data-wq]', extra).forEach(i => { if (i.value !== '') kept[i.dataset.wq] = i.value; });
+    if (type() === 'holiday') {
+      const q = $('#spQ', extra); const qv = q ? q.value : '';
+      extra.innerHTML = '<div class="row"><label class="f">公休假期间每人应上班次<input type="number" min="0" step="0.5" id="spQ" value="' + esc(qv) + '" placeholder="例如 20"></label></div>' +
+        '<div class="hint">公休假期间只排「值」（全天 = 3 个班次）和「休」。实际班次 − 应上班次 = 加班，少于应上会标红。前后如果把某一周切成不完整周，那一周的常规部分需要单独填满勤班次。</div>';
+    } else {
+      const list = simulatedPartialWeeks(a, b);
+      const pre = Object.assign({}, D.weekQuotas, kept);
+      extra.innerHTML = quotaInputsHtml(list, pre) + (list.length ? '' : '<div class="hint">共 ' + rangeDays(a, b).length / 7 + ' 个完整周，每周满勤 5 班次。</div>');
+    }
+  };
+  A.onchange = () => { if (A.value && (!B.value || B.value < A.value)) B.value = addDays(weekStart(A.value), 6); refresh(); };
+  B.onchange = refresh;
+  $$('input[name=spT]', m.body).forEach(r => r.onchange = refresh);
+  $$('[data-w]', m.body).forEach(b => b.onclick = () => { if (!A.value) return; B.value = addDays(weekStart(A.value), 7 * Number(b.dataset.w) - 1); refresh(); });
+  $('#spOk', m.body).onclick = () => {
+    refresh(); if (err.textContent) return;
+    const a = A.value, b = B.value;
+    if (!isValidKey(a) || !isValidKey(b)) { err.textContent = '请选择开始和结束日期'; return; }
+    const p = { id: uid(), type: type(), start: a, end: b };
+    if (p.type === 'holiday') {
+      const q = Number($('#spQ', extra).value);
+      if ($('#spQ', extra).value === '' || !isHalfStep(q) || q < 0) { err.textContent = '请填写公休假期间每人应上班次'; return; }
+      p.quota = q;
+    } else {
+      const wq = readQuotaInputs(extra);
+      if (!wq) { err.textContent = '不完整周必须填写满勤班次，否则无法排班'; return; }
+      Object.assign(D.weekQuotas, wq);
+    }
+    D.periods.push(p); D.periods.sort((x, y) => x.start < y.start ? -1 : 1);
+    fixAutoXia(rangeDays(a, b));
+    UI.week = weekStart(a);
+    commit();
+    toast('已创建：' + periodLabel(p));
+    m.close();
+  };
+  const drawList = () => {
+    const el = $('#spList', m.body);
+    if (!D.periods.length) { el.innerHTML = '<div class="hint">还没有排班期间</div>'; return; }
+    const ps = D.periods.slice().sort((x, y) => x.start < y.start ? 1 : -1);
+    el.innerHTML = '<div class="scroll"><table class="tbl"><thead><tr><th>类型</th><th>日期</th><th>天数</th><th>应上班次</th><th></th></tr></thead><tbody>' +
+      ps.map(p => '<tr><td>' + (p.type === 'holiday' ? '公休假' : '常规班次') + '</td><td>' + fmtYMD(p.start) + ' – ' + fmtYMD(p.end) + '</td><td>' + rangeDays(p.start, p.end).length + '</td><td>' + (p.type === 'holiday' ? fmtNum(p.quota) : '每周 5（不完整周另填）') + '</td>' +
+        '<td style="text-align:right;white-space:nowrap"><button class="sm" data-go="' + p.start + '">查看</button> <button class="sm" data-ed="' + p.id + '">修改</button> <button class="sm danger" data-del="' + p.id + '">删除</button></td></tr>').join('') + '</tbody></table></div>';
+    $$('[data-go]', el).forEach(b => b.onclick = () => { gotoWeek(b.dataset.go); m.close(); });
+    $$('[data-ed]', el).forEach(b => b.onclick = () => openEditPeriod(b.dataset.ed, drawList));
+    $$('[data-del]', el).forEach(b => b.onclick = async () => {
+      const p = D.periods.find(x => x.id === b.dataset.del); if (!p) return;
+      const n = countCells(rangeDays(p.start, p.end));
+      if (!await confirmBox('删除「' + periodLabel(p) + '」？\n这段日期里已排的 ' + n + ' 个格子会一起清空，不能恢复。', '删除', true)) return;
+      rangeDays(p.start, p.end).forEach(d => { delete D.cells[d]; });
+      D.periods = D.periods.filter(x => x !== p);
+      fixAutoXia([]);
+      commit(); drawList(); toast('已删除');
+    });
+  };
+  refresh(); drawList();
+}
+function openEditPeriod(id, after) {
+  const p = D.periods.find(x => x.id === id); if (!p) return;
+  const m = openModal({ title: '修改' + (p.type === 'holiday' ? '公休假' : '常规班次') + '期间' });
+  m.body.innerHTML = '<div class="row"><label class="f">开始日期<input type="date" id="epA" value="' + p.start + '"></label><label class="f">结束日期<input type="date" id="epB" value="' + p.end + '"></label></div>' +
+    (p.type === 'holiday' ? '<div class="row"><label class="f">每人应上班次<input type="number" min="0" step="0.5" id="epQ" value="' + esc(p.quota) + '"></label></div>' : '') +
+    '<div id="epExtra"></div><div class="err" id="epErr"></div><div class="btns end"><button data-cancel>取消</button><button class="primary" data-save>保存</button></div>';
+  const A = $('#epA', m.body), B = $('#epB', m.body), extra = $('#epExtra', m.body), err = $('#epErr', m.body);
+  const refresh = () => {
+    err.textContent = '';
+    if (!isValidKey(A.value) || !isValidKey(B.value)) return;
+    if (A.value > B.value) { err.textContent = '结束日期不能早于开始日期'; return; }
+    const ov = overlapping(A.value, B.value, p.id);
+    if (ov) { err.textContent = '和已有的「' + periodLabel(ov) + '」重叠，请先缩短那个期间'; return; }
+    if (p.type === 'regular') { const kept = {}; $$('[data-wq]', extra).forEach(i => { if (i.value !== '') kept[i.dataset.wq] = i.value; }); extra.innerHTML = quotaInputsHtml(simulatedPartialWeeks(A.value, B.value, p.id), Object.assign({}, D.weekQuotas, kept)); }
+  };
+  A.onchange = refresh; B.onchange = refresh;
+  $('[data-cancel]', m.body).onclick = () => m.close();
+  $('[data-save]', m.body).onclick = async () => {
+    refresh(); if (err.textContent) return;
+    const a = A.value, b = B.value;
+    let q = null, wq = {};
+    if (p.type === 'holiday') { q = Number($('#epQ', m.body).value); if ($('#epQ', m.body).value === '' || !isHalfStep(q) || q < 0) { err.textContent = '请填写应上班次'; return; } }
+    else { wq = readQuotaInputs(extra); if (!wq) { err.textContent = '不完整周必须填写满勤班次'; return; } }
+    const removed = rangeDays(p.start, p.end).filter(d => d < a || d > b);
+    const added = rangeDays(a, b).filter(d => d < p.start || d > p.end);
+    const n = countCells(removed);
+    if (n && !await confirmBox('缩短后，被移出的日期里已排的 ' + n + ' 个格子会被清空。确定吗？', '确定', true)) return;
+    removed.forEach(d => { delete D.cells[d]; });
+    p.start = a; p.end = b; if (q !== null) p.quota = q;
+    Object.assign(D.weekQuotas, wq);
+    D.periods.sort((x, y) => x.start < y.start ? -1 : 1);
+    fixAutoXia(added);
+    commit(); m.close(); toast('已保存'); if (after) after();
+  };
+  refresh();
+}
+function openWeekQuota(ws) {
+  const wi = weekInfo(ws);
+  if (!wi.regDays.length || wi.full) { toast('这一周不需要单独填写满勤班次'); return; }
+  const m = openModal({ title: '填写满勤班次' });
+  m.body.innerHTML = '<p>' + fmtMD(ws) + '–' + fmtMD(addDays(ws, 6)) + ' 这一周只有 ' + wi.regDays.length + ' 天是常规班次（' + wi.regDays.map(d => '周' + WD_SHORT[weekdayIdx(d)]).join('、') + '），不是完整周。</p>' +
+    '<div class="row"><label class="f">这周常规部分的满勤班次<input type="number" min="0" step="0.5" id="wqV" value="' + (D.weekQuotas[ws] !== undefined ? esc(D.weekQuotas[ws]) : '') + '"></label></div><div class="err" id="wqE"></div>' +
+    '<div class="btns end"><button data-cancel>取消</button><button class="primary" data-save>保存</button></div>';
+  $('[data-cancel]', m.body).onclick = () => m.close();
+  $('[data-save]', m.body).onclick = () => {
+    const v = $('#wqV', m.body).value, n = Number(v);
+    if (v === '' || !isHalfStep(n) || n < 0) { $('#wqE', m.body).textContent = '请填写满勤班次（可以是 0.5 的倍数）'; return; }
+    D.weekQuotas[ws] = n; commit(); m.close();
+  };
+}
+
+/* ================= 人员 ================= */
+function personRefs(pid) {
+  for (const d in D.cells) if (D.cells[d][pid]) return true;
+  return D.adjustments.some(a => a.pid === pid) || D.fieldwork.some(f => f.pid === pid);
+}
+function openPeople() {
+  const m = openModal({ title: '人员管理' });
+  const draw = () => {
+    const act = D.people.filter(p => !p.sealed), sealed = D.people.filter(p => p.sealed);
+    const row = p => '<div class="prow" data-id="' + p.id + '">' + (p.sealed ? '' : '<span class="handle" title="拖动排序">≡</span>') +
+      '<div class="pinfo"><b>' + esc(p.name) + '</b><span class="tag ' + (p.type === 'temp' ? 'temp' : '') + '">' + (p.type === 'temp' ? '临时' : '常驻') + '</span>' +
+      '<div class="small">' + (p.type === 'resident' ? '期初加班余额 ' + fmtNum(p.initBalance || 0) + (p.since ? '，从 ' + fmtYMD(p.since) + ' 所在周起算' : '') + ' · 当前剩余 ' + fmtNum(balanceAt(p, weekStart(todayKey()))) : '只记班次，不算加班') + (p.sealed && p.sealedAt ? ' · ' + fmtYMD(p.sealedAt) + ' 封存' : '') + '</div></div>' +
+      '<button class="sm" data-edit>编辑</button><button class="sm ' + (p.sealed ? '' : 'danger') + '" data-seal>' + (p.sealed ? '启用' : '封存') + '</button></div>';
+    m.body.innerHTML = '<div class="hint">按住左边的 ≡ 上下拖动，可以调整排班表里的顺序。</div>' +
+      '<div class="plist" id="plAct">' + (act.map(row).join('') || '<div class="hint">还没有人员</div>') + '</div>' +
+      (sealed.length ? '<div class="sec-t">已封存（灰色，排在最下面）</div><div class="plist sealed">' + sealed.map(row).join('') + '</div>' : '') +
+      '<div class="sec-t">添加人员</div>' +
+      '<div class="row"><label class="f">姓名<input id="npName" maxlength="12"></label>' +
+      '<label class="f">类型<select id="npType"><option value="resident">常驻人员</option><option value="temp">临时人员</option></select></label>' +
+      '<label class="f" id="npBalL">期初加班余额<input type="number" step="0.5" id="npBal" value="0"></label>' +
+      '<button class="primary" id="npAdd">添加</button></div><div class="err" id="npErr"></div>' +
+      '<div class="hint">常驻人员：每周 5 个班次满勤，多出的加进剩余加班，少的从剩余加班里扣。临时人员：只记班次数量，不算加班，也不做周提醒。</div>';
+    $('#npType', m.body).onchange = e => { $('#npBalL', m.body).style.display = e.target.value === 'temp' ? 'none' : ''; };
+    $('#npAdd', m.body).onclick = () => {
+      const name = $('#npName', m.body).value.trim(), type = $('#npType', m.body).value, bal = Number($('#npBal', m.body).value || 0);
+      if (!name) { $('#npErr', m.body).textContent = '请填写姓名'; return; }
+      if (D.people.some(p => p.name === name)) { $('#npErr', m.body).textContent = '已经有叫「' + name + '」的人员了'; return; }
+      if (!isHalfStep(bal)) { $('#npErr', m.body).textContent = '期初余额要是 0.5 的倍数'; return; }
+      const p = { id: uid(), name, type, sealed: false, sealedAt: null, initBalance: type === 'resident' ? bal : 0, since: D.periods.length ? weekStart(todayKey()) : null };
+      const idx = D.people.findIndex(x => x.sealed);
+      if (idx < 0) D.people.push(p); else D.people.splice(idx, 0, p);
+      commit(); draw(); toast('已添加 ' + name);
+    };
+    $$('.prow', m.body).forEach(r => {
+      const p = personById(r.dataset.id);
+      $('[data-edit]', r).onclick = () => openEditPerson(p, draw);
+      $('[data-seal]', r).onclick = async () => {
+        if (!p.sealed && !await confirmBox('封存「' + p.name + '」？\n封存后不再出现在新的排班周里，历史数据保留，随时可以启用。', '封存')) return;
+        p.sealed = !p.sealed; p.sealedAt = p.sealed ? todayKey() : null;
+        if (p.sealed) { D.people = D.people.filter(x => x !== p).concat([p]); }
+        else { D.people = D.people.filter(x => x !== p); const idx = D.people.findIndex(x => x.sealed); if (idx < 0) D.people.push(p); else D.people.splice(idx, 0, p); }
+        commit(); draw();
+      };
+      const hd = $('.handle', r); if (hd) bindDrag(hd, r, $('#plAct', m.body));
+    });
+  };
+  draw();
+}
+function bindDrag(handle, row, list) {
+  // 监听挂在 window 上：拖动时行节点会在 DOM 里移动，指针捕获会随之失效
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const pid = e.pointerId;
+    row.classList.add('dragging');
+    const move = ev => {
+      if (ev.pointerId !== pid) return;
+      ev.preventDefault();
+      const y = ev.clientY; let before = null;
+      for (const r of $$('.prow', list)) { if (r === row) continue; const b = r.getBoundingClientRect(); if (y < b.top + b.height / 2) { before = r; break; } }
+      if (before !== row.nextSibling) list.insertBefore(row, before);
+    };
+    const up = ev => {
+      if (ev.pointerId !== pid) return;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      row.classList.remove('dragging');
+      const ids = $$('.prow', list).map(r => r.dataset.id);
+      const ordered = ids.map(personById).filter(Boolean);
+      const rest = D.people.filter(p => ids.indexOf(p.id) < 0);
+      const changed = ordered.some((p, i) => D.people[i] !== p);
+      D.people = ordered.concat(rest);
+      if (changed) commit();
+    };
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  });
+}
+function openEditPerson(p, after) {
+  const m = openModal({ title: '编辑人员' });
+  m.body.innerHTML = '<div class="row"><label class="f">姓名<input id="epName" maxlength="12" value="' + esc(p.name) + '"></label>' +
+    '<label class="f">类型<select id="epType"><option value="resident">常驻人员</option><option value="temp">临时人员</option></select></label></div>' +
+    '<div id="epRes"><div class="row"><label class="f">期初加班余额<input type="number" step="0.5" id="epBal" value="' + esc(p.initBalance || 0) + '"></label>' +
+    '<label class="f">加班起算日期（可不填）<input type="date" id="epSince" value="' + (p.since || '') + '"></label></div>' +
+    '<div class="hint">从起算日期所在的那一周开始计算加班；期初余额是这之前的余额。不填 = 从最早的排班开始算。</div></div>' +
+    '<div class="err" id="epErr"></div><div class="btns"><button class="danger" data-del>删除人员</button><span style="flex:1"></span><button data-cancel>取消</button><button class="primary" data-save>保存</button></div>';
+  $('#epType', m.body).value = p.type;
+  const sync = () => { $('#epRes', m.body).style.display = $('#epType', m.body).value === 'temp' ? 'none' : ''; };
+  $('#epType', m.body).onchange = sync; sync();
+  $('[data-cancel]', m.body).onclick = () => m.close();
+  $('[data-save]', m.body).onclick = () => {
+    const name = $('#epName', m.body).value.trim(), bal = Number($('#epBal', m.body).value || 0);
+    if (!name) { $('#epErr', m.body).textContent = '请填写姓名'; return; }
+    if (D.people.some(x => x !== p && x.name === name)) { $('#epErr', m.body).textContent = '已经有叫「' + name + '」的人员了'; return; }
+    if (!isHalfStep(bal)) { $('#epErr', m.body).textContent = '期初余额要是 0.5 的倍数'; return; }
+    p.name = name; p.type = $('#epType', m.body).value; p.initBalance = bal; p.since = $('#epSince', m.body).value || null;
+    commit(); m.close(); if (after) after();
+  };
+  $('[data-del]', m.body).onclick = async () => {
+    if (personRefs(p.id)) { alertBox('不能删除', '「' + p.name + '」已经有排班、调整或外勤记录，不能删除。\n如果这个人不再上班，请用「封存」。'); return; }
+    if (!await confirmBox('删除「' + p.name + '」？', '删除', true)) return;
+    D.people = D.people.filter(x => x !== p); commit(); m.close(); if (after) after();
+  };
+}
+
+/* ================= 调整加班 ================= */
+function openAdjust() {
+  const m = openModal({ title: '调整加班', wide: true });
+  const draw = () => {
+    const res = D.people.filter(p => p.type === 'resident' && !p.sealed);
+    const date = ($('#adDate', m.body) || {}).value || todayKey();
+    m.body.innerHTML = '<div class="row"><label class="f">调整日期（从这天所在周起生效）<input type="date" id="adDate" value="' + date + '"></label></div>' +
+      '<div class="row" style="background:#f6f8fa;border-radius:10px;padding:8px 10px"><label class="f">统一数量<input type="number" step="0.5" id="adAllN" placeholder="如 -1 或 0.5"></label><label class="f grow">统一原因<input id="adAllR" placeholder="例如：年底清零"></label><button id="adAll">一键应用到所有人</button></div>' +
+      '<table class="tbl"><thead><tr><th>姓名</th><th class="num">当前剩余加班</th><th>调整数量</th><th>原因（必填）</th></tr></thead><tbody>' +
+      res.map(p => '<tr data-pid="' + p.id + '"><td><b>' + esc(p.name) + '</b></td><td class="num">' + fmtNum(balanceAt(p, weekStart(date))) + '</td><td><input type="number" step="0.5" class="adN" placeholder="0"></td><td><input class="adR" style="width:100%" placeholder="原因"></td></tr>').join('') +
+      '</tbody></table>' + (res.length ? '' : '<div class="hint">没有常驻人员</div>') +
+      '<div class="err" id="adErr"></div><div class="btns"><button class="primary" id="adOk">确认调整</button></div>' +
+      '<div class="sec-t">调整记录</div><div id="adHist"></div>';
+    $('#adDate', m.body).onchange = draw;
+    $('#adAll', m.body).onclick = () => { const n = $('#adAllN', m.body).value, r = $('#adAllR', m.body).value; $$('tr[data-pid]', m.body).forEach(tr => { $('.adN', tr).value = n; $('.adR', tr).value = r; }); };
+    $('#adOk', m.body).onclick = async () => {
+      const err = $('#adErr', m.body); err.textContent = '';
+      const d = $('#adDate', m.body).value; if (!isValidKey(d)) { err.textContent = '请选择调整日期'; return; }
+      const items = [];
+      for (const tr of $$('tr[data-pid]', m.body)) {
+        const v = $('.adN', tr).value.trim(); if (v === '' || Number(v) === 0) continue;
+        const n = Number(v), r = $('.adR', tr).value.trim(), p = personById(tr.dataset.pid);
+        if (!isHalfStep(n)) { err.textContent = p.name + '：数量要是 0.5 的倍数'; return; }
+        if (!r) { err.textContent = p.name + '：必须填写原因'; return; }
+        items.push({ p, n, r });
+      }
+      if (!items.length) { err.textContent = '请至少给一个人填写调整数量'; return; }
+      if (!await confirmBox('确认调整 ' + items.length + ' 人：\n' + items.map(i => i.p.name + '  ' + (i.n > 0 ? '+' : '') + fmtNum(i.n) + '（' + i.r + '）').join('\n'), '确认调整')) return;
+      const batch = uid(), now = new Date().toISOString();
+      items.forEach(i => D.adjustments.push({ id: uid(), date: d, pid: i.p.id, amount: i.n, reason: i.r, batch, createdAt: now, revoked: false, revokedAt: null }));
+      commit(); draw(); toast('已调整 ' + items.length + ' 人');
+    };
+    drawHist();
+  };
+  const drawHist = () => {
+    const el = $('#adHist', m.body);
+    const list = D.adjustments.slice().sort((a, b) => a.createdAt < b.createdAt ? 1 : -1);
+    if (!list.length) { el.innerHTML = '<div class="hint">还没有调整记录</div>'; return; }
+    const batchCount = {}; D.adjustments.forEach(a => { if (!a.revoked) batchCount[a.batch] = (batchCount[a.batch] || 0) + 1; });
+    el.innerHTML = '<div class="scroll"><table class="tbl"><thead><tr><th>生效日期</th><th>姓名</th><th class="num">数量</th><th>原因</th><th>操作时间</th><th></th></tr></thead><tbody>' +
+      list.map(a => { const p = personById(a.pid); return '<tr class="' + (a.revoked ? 'revoked' : '') + '"><td>' + fmtYMD(a.date) + '</td><td>' + esc(p ? p.name : '(已删除)') + '</td><td class="num">' + (a.amount > 0 ? '+' : '') + fmtNum(a.amount) + '</td><td>' + esc(a.reason) + '</td><td>' + fmtTime(a.createdAt) + '</td>' +
+        '<td class="ops" style="text-align:right;white-space:nowrap">' + (a.revoked ? '<span class="muted" style="font-size:12px">已撤销 ' + fmtTime(a.revokedAt) + '</span>' : '<button class="sm" data-rv="' + a.id + '">撤销</button>' + (batchCount[a.batch] > 1 ? ' <button class="sm" data-rvb="' + a.batch + '">撤销整批(' + batchCount[a.batch] + ')</button>' : '')) + '</td></tr>'; }).join('') +
+      '</tbody></table></div>';
+    $$('[data-rv]', el).forEach(b => b.onclick = async () => {
+      const a = D.adjustments.find(x => x.id === b.dataset.rv); const p = personById(a.pid);
+      if (!await confirmBox('撤销这条调整？\n' + (p ? p.name : '') + ' ' + (a.amount > 0 ? '+' : '') + fmtNum(a.amount) + '（' + a.reason + '）', '撤销', true)) return;
+      a.revoked = true; a.revokedAt = new Date().toISOString(); commit(); draw();
+    });
+    $$('[data-rvb]', el).forEach(b => b.onclick = async () => {
+      const items = D.adjustments.filter(x => x.batch === b.dataset.rvb && !x.revoked);
+      if (!await confirmBox('撤销这一批的 ' + items.length + ' 条调整？', '全部撤销', true)) return;
+      const now = new Date().toISOString(); items.forEach(a => { a.revoked = true; a.revokedAt = now; }); commit(); draw();
+    });
+  };
+  draw();
+}
+
+/* ================= 外勤 ================= */
+function openField() {
+  const m = openModal({ title: '外勤记录', wide: true });
+  let editing = null;
+  const draw = () => {
+    const ppl = D.people.filter(p => !p.sealed || (editing && editing.pid === p.id));
+    const f = editing || { date: todayKey(), pid: '', qty: 1, note: '' };
+    m.body.innerHTML = '<div class="sec-t first">' + (editing ? '修改外勤记录' : '新增外勤记录') + '</div>' +
+      '<div class="row"><label class="f">日期<input type="date" id="fwD" value="' + f.date + '"></label>' +
+      '<label class="f">人员<select id="fwP"><option value="">请选择</option>' + ppl.map(p => '<option value="' + p.id + '"' + (p.id === f.pid ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') + '</select></label>' +
+      '<label class="f">数量<span class="seg"><label><input type="radio" name="fwQ" value="1"' + (Number(f.qty) === 1 ? ' checked' : '') + '><span>1</span></label><label><input type="radio" name="fwQ" value="0.5"' + (Number(f.qty) === 0.5 ? ' checked' : '') + '><span>0.5</span></label></span></label>' +
+      '<label class="f grow">备注<input id="fwN" value="' + esc(f.note) + '" placeholder="选填"></label></div>' +
+      '<div class="err" id="fwE"></div><div class="btns"><button class="primary" id="fwOk">' + (editing ? '保存修改' : '确认') + '</button>' + (editing ? '<button id="fwCancel">取消修改</button>' : '') + '<span style="flex:1"></span><button id="fwBoard">筛选看板</button></div>' +
+      '<div class="sec-t">外勤列表（' + D.fieldwork.length + ' 条）</div><div id="fwList"></div><div class="hint">外勤单独记录，不计入加班。</div>';
+    $('#fwOk', m.body).onclick = () => {
+      const date = $('#fwD', m.body).value, pid = $('#fwP', m.body).value, qty = Number($('input[name=fwQ]:checked', m.body).value), note = $('#fwN', m.body).value.trim();
+      if (!isValidKey(date)) { $('#fwE', m.body).textContent = '请选择日期'; return; }
+      if (!pid) { $('#fwE', m.body).textContent = '请选择人员'; return; }
+      if (editing) { const r = D.fieldwork.find(x => x.id === editing.id); Object.assign(r, { date, pid, qty, note }); editing = null; toast('已保存修改'); }
+      else { D.fieldwork.push({ id: uid(), date, pid, qty, note, createdAt: new Date().toISOString() }); toast('已记录'); }
+      commit(); draw();
+    };
+    if (editing) $('#fwCancel', m.body).onclick = () => { editing = null; draw(); };
+    $('#fwBoard', m.body).onclick = openFieldBoard;
+    const list = D.fieldwork.slice().sort((a, b) => a.date !== b.date ? (a.date < b.date ? 1 : -1) : (a.createdAt < b.createdAt ? 1 : -1));
+    const el = $('#fwList', m.body);
+    el.innerHTML = list.length ? '<div class="scroll"><table class="tbl"><thead><tr><th>日期</th><th>人员</th><th class="num">数量</th><th>备注</th><th></th></tr></thead><tbody>' +
+      list.map(r => { const p = personById(r.pid); return '<tr><td>' + fmtYMD(r.date) + '</td><td>' + esc(p ? p.name : '(已删除)') + '</td><td class="num">' + fmtNum(r.qty) + '</td><td>' + esc(r.note) + '</td><td style="text-align:right;white-space:nowrap"><button class="sm" data-e="' + r.id + '">修改</button> <button class="sm danger" data-x="' + r.id + '">删除</button></td></tr>'; }).join('') +
+      '</tbody></table></div>' : '<div class="hint">还没有外勤记录</div>';
+    $$('[data-e]', el).forEach(b => b.onclick = () => { editing = Object.assign({}, D.fieldwork.find(x => x.id === b.dataset.e)); draw(); m.body.scrollTop = 0; });
+    $$('[data-x]', el).forEach(b => b.onclick = async () => {
+      const r = D.fieldwork.find(x => x.id === b.dataset.x); const p = personById(r.pid);
+      if (!await confirmBox('删除这条外勤记录？\n' + fmtYMD(r.date) + ' ' + (p ? p.name : '') + ' ' + fmtNum(r.qty), '删除', true)) return;
+      D.fieldwork = D.fieldwork.filter(x => x !== r); if (editing && editing.id === r.id) editing = null; commit(); draw();
+    });
+  };
+  draw();
+}
+
+/* ================= 看板 ================= */
+function boardPeople(hasData) { return D.people.filter(p => !p.sealed).concat(D.people.filter(p => p.sealed && hasData(p.id))); }
+function scheduledCellsIn(a, b, fn) {
+  Object.keys(D.cells).sort().forEach(d => { if (d < a || d > b || !dayType(d)) return; const row = D.cells[d]; for (const pid in row) fn(d, pid, row[pid]); });
+}
+function openBoard(title, calc, defaultRange) {
+  const m = openModal({ title, wide: true });
+  const r = defaultRange || monthRange(todayKey());
+  m.body.innerHTML = rangeControls('bd', r[0], r[1]) + '<div id="bdOut"></div><div class="btns"><button id="bdExp">导出 Excel</button></div>';
+  let last = null;
+  const run = (a, b) => { last = calc(a, b); $('#bdOut', m.body).innerHTML = boardTableHtml(last); };
+  const get = bindRange(m.body, 'bd', run);
+  $('#bdExp', m.body).onclick = () => { const [a, b] = get(); if (!last) return; exportBoard(title, a, b, last); };
+  run(r[0], r[1]);
+}
+function boardTableHtml(t) {
+  return '<div class="scroll" style="max-height:56vh"><table class="tbl"><thead><tr>' + t.head.map((h, i) => '<th class="' + (t.numCols && t.numCols.indexOf(i) >= 0 ? 'num' : '') + '">' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' +
+    t.rows.map(r => '<tr>' + r.map((c, i) => '<td class="' + (t.numCols && t.numCols.indexOf(i) >= 0 ? 'num' : '') + (t.smallCols && t.smallCols.indexOf(i) >= 0 ? ' dates' : '') + (c === 0 ? ' muted' : '') + '">' + esc(typeof c === 'number' ? fmtNum(c) : c) + '</td>').join('') + '</tr>').join('') +
+    (t.total ? '<tr class="total">' + t.total.map((c, i) => '<td class="' + (t.numCols && t.numCols.indexOf(i) >= 0 ? 'num' : '') + '">' + esc(typeof c === 'number' ? fmtNum(c) : c) + '</td>').join('') + '</tr>' : '') +
+    '</tbody></table></div>';
+}
+function calcNight(a, b) {
+  const cnt = {};
+  scheduledCellsIn(a, b, (d, pid, c) => { if (c.s === '夜' || c.s === '值') cnt[pid] = (cnt[pid] || 0) + 1; });
+  const ppl = boardPeople(id => cnt[id]);
+  const rows = ppl.map(p => [p.name + (p.type === 'temp' ? '（临时）' : ''), cnt[p.id] || 0]);
+  return { head: ['人员', '夜班数量'], rows, numCols: [1], total: ['合计', rows.reduce((s, r) => s + r[1], 0)], widths: [16, 12], note: '公休假的「值」（全天）也算 1 个夜班' };
+}
+function calcExam(a, b) {
+  const j = {}, x = {}, jn = {}, xn = {};
+  const bump = (o, on, pid, note) => { o[pid] = (o[pid] || 0) + 1; if (note) { on[pid] = on[pid] || {}; on[pid][note] = (on[pid][note] || 0) + 1; } };
+  scheduledCellsIn(a, b, (d, pid, c) => { if (c.j !== undefined) bump(j, jn, pid, c.j); if (c.x !== undefined) bump(x, xn, pid, c.x); });
+  const nt = o => o ? Object.keys(o).map(k => k + '×' + o[k]).join(' ') : '';
+  const ppl = boardPeople(id => j[id] || x[id]);
+  const rows = ppl.map(p => [p.name + (p.type === 'temp' ? '（临时）' : ''), j[p.id] || 0, nt(jn[p.id]), x[p.id] || 0, nt(xn[p.id])]);
+  return { head: ['人员', '教职工体检', '教·备注', '学生体检', '学·备注'], rows, numCols: [1, 3], smallCols: [2, 4], total: ['合计', rows.reduce((s, r) => s + r[1], 0), '', rows.reduce((s, r) => s + r[3], 0), ''], widths: [16, 12, 18, 12, 18] };
+}
+function calcField(a, b) {
+  const sum = {};
+  D.fieldwork.forEach(f => { if (f.date >= a && f.date <= b) sum[f.pid] = (sum[f.pid] || 0) + Number(f.qty); });
+  const ppl = boardPeople(id => sum[id]);
+  const rows = ppl.map(p => [p.name + (p.type === 'temp' ? '（临时）' : ''), round1(sum[p.id] || 0)]);
+  const detail = D.fieldwork.filter(f => f.date >= a && f.date <= b).sort((x, y) => x.date < y.date ? -1 : 1).map(f => { const p = personById(f.pid); return [f.date, p ? p.name : '', Number(f.qty), f.note || '']; });
+  return { head: ['人员', '外勤数量'], rows, numCols: [1], total: ['合计', round1(rows.reduce((s, r) => s + r[1], 0))], widths: [16, 12], detail: { head: ['日期', '人员', '数量', '备注'], rows: detail, widths: [14, 12, 8, 30] } };
+}
+function calcLegal(a, b) {
+  const st = {};
+  scheduledCellsIn(a, b, (d, pid, c) => {
+    if (!isLegal(d) || PAY_SHIFTS.indexOf(c.s) < 0) return;
+    const o = st[pid] = st[pid] || { n: 0, pay: 0, dates: [] };
+    o.n += SHIFT_VALUE[c.s]; o.pay += Number(rateOn(d)[c.s]) || 0; o.dates.push(d);
+  });
+  const ppl = boardPeople(id => st[id]);
+  const rows = ppl.map(p => { const o = st[p.id] || { n: 0, pay: 0, dates: [] }; return [p.name + (p.type === 'temp' ? '（临时）' : ''), o.n, round1(o.pay), o.dates.map(fmtShort).join(' ')]; });
+  return { head: ['人员', '加班班次', '加班费(元)', '加班日期'], rows, numCols: [1, 2], smallCols: [3], total: ['合计', rows.reduce((s, r) => s + r[1], 0), round1(rows.reduce((s, r) => s + r[2], 0)), ''], widths: [16, 10, 12, 50] };
+}
+function openNightBoard() { openBoard('夜班看板', calcNight); }
+function openExamBoard() { openBoard('体检看板', calcExam); }
+function openFieldBoard() { openBoard('外勤看板', calcField); }
+function openLegalBoard() { const y = todayKey().slice(0, 4); openBoard('法定假加班费看板', calcLegal, [y + '-01-01', y + '-12-31']); }
+
+/* ================= 法定假加班费 ================= */
+function openLegal() {
+  const m = openModal({ title: '法定假加班费', wide: true });
+  const draw = () => {
+    const years = {}; D.legalDays.forEach(d => { (years[d.slice(0, 4)] = years[d.slice(0, 4)] || []).push(d); });
+    const cur = D.rates[D.rates.length - 1];
+    m.body.innerHTML = '<div class="btns" style="margin-top:0"><button class="primary" id="lgBoard">加班费看板</button></div>' +
+      '<div class="sec-t">法定假日期（可以提前设置未来的）</div>' +
+      '<div class="row"><label class="f">日期<input type="date" id="lgD"></label><button id="lgAdd">添加</button>' +
+      '<span style="width:16px"></span><label class="f">批量：从<input type="date" id="lgA"></label><label class="f">到<input type="date" id="lgB"></label><button id="lgAddR">添加这段日期</button></div>' +
+      (Object.keys(years).length ? Object.keys(years).sort().reverse().map(y => '<div style="margin:10px 0 4px;font-weight:600">' + y + ' 年（' + years[y].length + ' 天）</div><div class="chips">' + years[y].map(d => '<span class="dchip">' + fmtMD(d) + ' 周' + WD_SHORT[weekdayIdx(d)] + '<button data-rm="' + d + '" aria-label="删除">×</button></span>').join('') + '</div>').join('') : '<div class="hint">还没有设置法定假</div>') +
+      '<div class="sec-t">加班费单价（元 / 个班）</div>' +
+      '<div class="hint">法定假当天上班另发加班费，班次照常计算。当前单价' + (cur.from > '2000-01-01' ? '（' + fmtYMD(cur.from) + ' 起）' : '') + '：白班 ' + cur['白'] + '，主班 ' + cur['主'] + '，夜班 ' + cur['夜'] + '，公休假值班全天 ' + cur['值'] + '。改单价要设生效日期，之前的加班费不变。</div>' +
+      '<table class="tbl"><thead><tr><th>生效日期</th><th class="num">白班</th><th class="num">主班</th><th class="num">夜班</th><th class="num">值班(全天)</th><th></th></tr></thead><tbody>' +
+      D.rates.slice().reverse().map((r, i) => '<tr><td>' + (r.from <= '2000-01-01' ? '最初' : fmtYMD(r.from)) + '</td><td class="num">' + r['白'] + '</td><td class="num">' + r['主'] + '</td><td class="num">' + r['夜'] + '</td><td class="num">' + r['值'] + '</td><td style="text-align:right">' + (D.rates.length > 1 && r.from > '2000-01-01' ? '<button class="sm danger" data-rr="' + r.from + '">删除</button>' : '') + '</td></tr>').join('') +
+      '</tbody></table>' +
+      '<div class="row"><label class="f">新单价生效日期<input type="date" id="rtF" value="' + todayKey() + '"></label>' +
+      PAY_SHIFTS.map(s => '<label class="f">' + (s === '值' ? '值班(全天)' : s + '班') + '<input type="number" min="0" step="1" data-rt="' + s + '" value="' + cur[s] + '" style="width:90px"></label>').join('') +
+      '<button id="rtAdd">保存新单价</button></div><div class="err" id="lgE"></div>';
+    $('#lgBoard', m.body).onclick = openLegalBoard;
+    const addDaysList = list => { let n = 0; list.forEach(d => { if (!isLegal(d)) { D.legalDays.push(d); n++; } }); D.legalDays.sort(); if (n) { commit(); toast('已添加 ' + n + ' 天'); } else toast('这些日期已经设置过了'); draw(); };
+    $('#lgAdd', m.body).onclick = () => { const d = $('#lgD', m.body).value; if (!isValidKey(d)) { $('#lgE', m.body).textContent = '请选择日期'; return; } addDaysList([d]); };
+    $('#lgAddR', m.body).onclick = () => { const a = $('#lgA', m.body).value, b = $('#lgB', m.body).value; if (!isValidKey(a) || !isValidKey(b) || a > b) { $('#lgE', m.body).textContent = '请选择正确的开始和结束日期'; return; } if (rangeDays(a, b).length > 31) { $('#lgE', m.body).textContent = '一次最多添加 31 天'; return; } addDaysList(rangeDays(a, b)); };
+    $$('[data-rm]', m.body).forEach(b => b.onclick = () => { D.legalDays = D.legalDays.filter(d => d !== b.dataset.rm); commit(); draw(); });
+    $('#rtAdd', m.body).onclick = () => {
+      const f = $('#rtF', m.body).value; if (!isValidKey(f)) { $('#lgE', m.body).textContent = '请选择生效日期'; return; }
+      const r = { from: f }; for (const inp of $$('[data-rt]', m.body)) { const v = Number(inp.value); if (inp.value === '' || !(v >= 0)) { $('#lgE', m.body).textContent = '单价要填写数字'; return; } r[inp.dataset.rt] = v; }
+      D.rates = D.rates.filter(x => x.from !== f).concat([r]).sort((a, b) => a.from < b.from ? -1 : 1);
+      commit(); draw(); toast('已保存，从 ' + fmtYMD(f) + ' 起生效');
+    };
+    $$('[data-rr]', m.body).forEach(b => b.onclick = async () => { if (!await confirmBox('删除 ' + fmtYMD(b.dataset.rr) + ' 起生效的单价？', '删除', true)) return; D.rates = D.rates.filter(x => x.from !== b.dataset.rr); commit(); draw(); });
+  };
+  draw();
+}
+
+/* ================= Excel 导出 ================= */
+const XLSX = (() => {
+  const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = crcT[(c ^ u[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const enc = new TextEncoder();
+  function zip(files) {
+    const parts = [], central = []; let off = 0;
+    const now = new Date();
+    const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    files.forEach(f => {
+      const name = enc.encode(f.name), data = enc.encode(f.text), crc = crc32(data);
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0, true); lh.setUint16(8, 0, true);
+      lh.setUint16(10, time, true); lh.setUint16(12, date, true); lh.setUint32(14, crc, true);
+      lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+      parts.push(new Uint8Array(lh.buffer), name, data);
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0, true); ch.setUint16(10, 0, true);
+      ch.setUint16(12, time, true); ch.setUint16(14, date, true); ch.setUint32(16, crc, true);
+      ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, name.length, true);
+      ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true); ch.setUint32(38, 0, true); ch.setUint32(42, off, true);
+      central.push(new Uint8Array(ch.buffer), name);
+      off += 30 + name.length + data.length;
+    });
+    const cdSize = central.reduce((s, a) => s + a.length, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, off, true);
+    return new Blob(parts.concat(central, [new Uint8Array(end.buffer)]), { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  const colName = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+  const x = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  function build(sheets) {
+    const fonts = [], fills = ['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'];
+    const borders = ['<border><left/><right/><top/><bottom/><diagonal/></border>', '<border><left style="thin"><color rgb="FF9AA3AE"/></left><right style="thin"><color rgb="FF9AA3AE"/></right><top style="thin"><color rgb="FF9AA3AE"/></top><bottom style="thin"><color rgb="FF9AA3AE"/></bottom><diagonal/></border>'];
+    const xfs = [], fontIdx = {}, fillIdx = {}, xfIdx = {};
+    const font = st => { const k = '<font>' + (st.bold ? '<b/>' : '') + '<sz val="' + (st.size || 11) + '"/><color rgb="FF' + (st.color || '1F2933') + '"/><name val="微软雅黑"/><family val="2"/><charset val="134"/></font>'; if (!(k in fontIdx)) { fontIdx[k] = fonts.length; fonts.push(k); } return fontIdx[k]; };
+    font({});
+    const fill = c => { if (!c) return 0; if (!(c in fillIdx)) { fillIdx[c] = fills.length; fills.push('<fill><patternFill patternType="solid"><fgColor rgb="FF' + c + '"/><bgColor indexed="64"/></patternFill></fill>'); } return fillIdx[c]; };
+    const xf = st => {
+      if (!st) return 0; const k = JSON.stringify(st); if (k in xfIdx) return xfIdx[k];
+      xfs.push('<xf numFmtId="0" fontId="' + font(st) + '" fillId="' + fill(st.fill) + '" borderId="' + (st.border ? 1 : 0) + '" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="' + (st.align || 'general') + '" vertical="center"' + (st.wrap ? ' wrapText="1"' : '') + '/></xf>');
+      xfIdx[k] = xfs.length; return xfs.length;
+    };
+    const sheetXml = sh => {
+      let rows = '';
+      sh.rows.forEach((row, ri) => {
+        if (!row) return;
+        let cs = '';
+        row.forEach((cell, ci) => {
+          if (cell === null || cell === undefined) return;
+          let v = cell, st = null; if (typeof cell === 'object') { v = cell.v; st = cell.s; }
+          const s = xf(st), ref = colName(ci) + (ri + 1);
+          if (v === null || v === undefined || v === '') { if (s) cs += '<c r="' + ref + '" s="' + s + '"/>'; }
+          else if (typeof v === 'number') cs += '<c r="' + ref + '" s="' + s + '"><v>' + v + '</v></c>';
+          else cs += '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + x(v) + '</t></is></c>';
+        });
+        const ht = sh.heights && sh.heights[ri];
+        rows += '<row r="' + (ri + 1) + '"' + (ht ? ' ht="' + ht + '" customHeight="1"' : '') + '>' + cs + '</row>';
+      });
+      const cols = sh.cols ? '<cols>' + sh.cols.map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>' : '';
+      const merges = sh.merges && sh.merges.length ? '<mergeCells count="' + sh.merges.length + '">' + sh.merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>' : '';
+      const brk = sh.breaks && sh.breaks.length ? '<rowBreaks count="' + sh.breaks.length + '" manualBreakCount="' + sh.breaks.length + '">' + sh.breaks.map(r => '<brk id="' + r + '" max="16383" man="1"/>').join('') + '</rowBreaks>' : '';
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+        (sh.landscape ? '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' : '') +
+        '<sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="18"/>' + cols + '<sheetData>' + rows + '</sheetData>' + merges +
+        '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>' +
+        (sh.landscape ? '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>' : '<pageSetup paperSize="9" orientation="portrait"/>') + brk + '</worksheet>';
+    };
+    const sheetFiles = sheets.map((sh, i) => ({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', text: sheetXml(sh) }));
+    const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="' + fonts.length + '">' + fonts.join('') + '</fonts><fills count="' + fills.length + '">' + fills.join('') + '</fills><borders count="' + borders.length + '">' + borders.join('') + '</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="' + (xfs.length + 1) + '"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' + xfs.join('') + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + sheets.map((sh, i) => '<sheet name="' + x(sh.name.replace(/[\[\]:*?\/\\]/g, '').slice(0, 31)) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') + '</sheets></workbook>';
+    const wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheets.map((sh, i) => '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>').join('') + '<Relationship Id="rId' + (sheets.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+    const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+    const ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + sheets.map((sh, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+    return zip([{ name: '[Content_Types].xml', text: ct }, { name: '_rels/.rels', text: rels }, { name: 'xl/workbook.xml', text: wb }, { name: 'xl/_rels/workbook.xml.rels', text: wbRels }, { name: 'xl/styles.xml', text: styles }].concat(sheetFiles));
+  }
+  return { build, colName };
+})();
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
+}
+const XS = {
+  title: { bold: true, size: 16, align: 'center' },
+  sub: { size: 9, color: '6B7785', align: 'left' },
+  th: { bold: true, fill: 'EEF2F6', border: true, align: 'center', wrap: true },
+  thHol: { bold: true, fill: 'DDF1EC', border: true, align: 'center', wrap: true },
+  thRed: { bold: true, fill: 'FDE2DF', color: 'C62828', border: true, align: 'center', wrap: true },
+  thOrange: { bold: true, fill: 'FFE0B8', color: 'A04E00', border: true, align: 'center', wrap: true },
+  name: { bold: true, border: true, align: 'center', wrap: true },
+  nameOrange: { bold: true, border: true, align: 'center', fill: 'FFD8A8', wrap: true },
+  nameYellow: { bold: true, border: true, align: 'center', fill: 'FFF09A', wrap: true },
+  nameSealed: { border: true, align: 'center', color: '9AA3AE', wrap: true },
+  off: { border: true, fill: 'F1F3F5' },
+  num: { border: true, align: 'center', bold: true, size: 12 },
+  numRed: { border: true, align: 'center', bold: true, size: 12, color: 'C62828' },
+  numBlue: { border: true, align: 'center', bold: true, size: 12, color: '1A5FB4' },
+  td: { border: true, align: 'center' },
+  tdL: { border: true, align: 'left', wrap: true },
+  tdS: { border: true, align: 'left', wrap: true, size: 9, color: '4A5563' },
+  total: { bold: true, border: true, align: 'center', fill: 'F3F5F8' },
+  totalL: { bold: true, border: true, align: 'left', fill: 'F3F5F8' }
+};
+const SHIFT_FILL = { '白': 'FFF7DC', '主': 'E2EFFF', '夜': 'EBE4FB', '下': 'F1F2F4', '值': 'D9F1EC' };
+function exportSchedule(a, b) {
+  const rows = [], merges = [], heights = {}, breaks = [];
+  const NC = 10, last = XLSX.colName(NC - 1);
+  for (let w = weekStart(a); w <= b; w = addDays(w, 7)) {
+    const wi = weekInfo(w), people = visiblePeople(wi), holPs = holidayPeriodsIn(wi.days);
+    const r0 = rows.length;
+    rows.push([{ v: D.title + '　' + fmtYMD(w) + ' – ' + fmtYMD(addDays(w, 6)).slice(5), s: XS.title }].concat(Array(NC - 1).fill({ v: '', s: XS.title })));
+    merges.push('A' + (r0 + 1) + ':' + last + (r0 + 1)); heights[r0] = 30;
+    const h1 = [{ v: '姓名', s: XS.th }], h2 = [{ v: '', s: XS.th }];
+    wi.days.forEach((d, i) => {
+      const cov = dayCoverage(d);
+      const st = cov && cov.level === 'red' ? XS.thRed : cov && cov.level === 'orange' ? XS.thOrange : wi.types[i] === 'holiday' ? XS.thHol : XS.th;
+      h1.push({ v: fmtMD(d) + (isLegal(d) ? ' 法' : ''), s: st });
+      h2.push({ v: WEEKDAYS[i] + (wi.types[i] === 'holiday' ? '(公休)' : '') + (!wi.types[i] ? '(未排)' : '') + (cov && cov.issues.length ? '\n' + cov.issues.join(' ') : ''), s: st });
+    });
+    h1.push({ v: '本周班次', s: XS.th }, { v: '剩余加班', s: XS.th }); h2.push({ v: '', s: XS.th }, { v: '', s: XS.th });
+    const r1 = rows.length; rows.push(h1, h2);
+    merges.push('A' + (r1 + 1) + ':A' + (r1 + 2), 'I' + (r1 + 1) + ':I' + (r1 + 2), 'J' + (r1 + 1) + ':J' + (r1 + 2));
+    heights[r1] = 22; heights[r1 + 1] = 34;
+    people.forEach(p => {
+      const s = personWeek(p, wi), warns = personWeekWarnings(p, wi, s);
+      const nst = p.sealed ? XS.nameSealed : warns.some(x => x.level === 'orange') ? XS.nameOrange : warns.length ? XS.nameYellow : XS.name;
+      const row = [{ v: p.name + (p.type === 'temp' ? '(临)' : '') + (warns.length ? '\n' + warns.map(x => x.text).join(' ') : ''), s: nst }];
+      wi.days.forEach((d, i) => {
+        if (!wi.types[i]) { row.push({ v: '', s: XS.off }); return; }
+        const c = getCell(d, p.id) || {};
+        const marks = (c.j !== undefined ? ' 教' + c.j : '') + (c.x !== undefined ? ' 学' + c.x : '');
+        row.push({ v: (c.s || '') + marks, s: { border: true, align: 'center', size: 12, bold: !!c.s, fill: SHIFT_FILL[c.s] || (wi.types[i] === 'holiday' ? 'F5FBF9' : null), wrap: true } });
+      });
+      if (p.type === 'resident') {
+        let st = XS.num, txt = fmtNum(s.total);
+        if (wi.regDays.length && wi.quota !== null) { if (s.reg < wi.quota) st = XS.numRed; else if (s.reg > wi.quota) st = XS.numBlue; txt += wi.holDays.length ? ' (常规' + fmtNum(s.reg) + '/应' + fmtNum(wi.quota) + ')' : ' / 应' + fmtNum(wi.quota); }
+        holPs.forEach(hp => { const act = holidayActual(p, hp); txt += ' 公休' + fmtNum(act) + '/' + fmtNum(hp.quota); if (act < Number(hp.quota)) st = XS.numRed; });
+        const bal = balanceAt(p, w);
+        row.push({ v: txt, s: Object.assign({}, st, { wrap: true, size: 10 }) }, { v: bal, s: bal < 0 ? XS.numRed : XS.num });
+      } else row.push({ v: fmtNum(s.total), s: XS.num }, { v: '—', s: XS.td });
+      rows.push(row); heights[rows.length - 1] = 30;
+    });
+    const info = [];
+    if (wi.regDays.length) info.push(wi.full ? '常规班次·完整周·满勤5班次' : '常规班次 ' + wi.regDays.length + ' 天·不完整周·满勤 ' + (wi.quota === null ? '未填写' : fmtNum(wi.quota)) + ' 班次');
+    holPs.forEach(hp => info.push('公休假 ' + fmtYMD(hp.start) + '–' + fmtYMD(hp.end) + ' 每人应上 ' + fmtNum(hp.quota) + ' 班次'));
+    if (!info.length) info.push('本周未排班');
+    rows.push([{ v: info.join('；') + '。班次：白1 主1 夜2 下0 休0 值3', s: XS.sub }]);
+    merges.push('A' + rows.length + ':' + last + rows.length);
+    breaks.push(rows.length);
+    rows.push(null);
+  }
+  const blob = XLSX.build([{ name: '排班表', rows, merges, heights, breaks: breaks.slice(0, -1), cols: [11, 10, 10, 10, 10, 10, 10, 10, 14, 9], landscape: true }]);
+  downloadBlob(blob, D.title + '_' + weekStart(a) + '至' + addDays(weekStart(b), 6) + '.xlsx');
+}
+function exportBoard(title, a, b, t) {
+  const mk = (head, rows, total, widths, name, subtitle) => {
+    const n = head.length, out = [];
+    out.push([{ v: title + (name ? '·' + name : ''), s: XS.title }].concat(Array(n - 1).fill({ v: '', s: XS.title })));
+    out.push([{ v: fmtYMD(a) + ' 至 ' + fmtYMD(b) + (subtitle ? '　' + subtitle : ''), s: XS.sub }]);
+    out.push(head.map(h => ({ v: h, s: XS.th })));
+    rows.forEach(r => out.push(r.map((c, i) => ({ v: c, s: typeof c === 'number' ? XS.td : (i === 0 ? XS.name : XS.tdS) }))));
+    if (total) out.push(total.map((c, i) => ({ v: c, s: i === 0 ? XS.totalL : XS.total })));
+    return { name: name || title, rows: out, merges: ['A1:' + XLSX.colName(n - 1) + '1', 'A2:' + XLSX.colName(n - 1) + '2'], heights: { 0: 28 }, cols: widths };
+  };
+  const sheets = [mk(t.head, t.rows, t.total, t.widths, '', t.note)];
+  if (t.detail) sheets.push(mk(t.detail.head, t.detail.rows, null, t.detail.widths, '明细'));
+  downloadBlob(XLSX.build(sheets), title + '_' + a + '至' + b + '.xlsx');
+}
+function openExport() {
+  const m = openModal({ title: '导出 Excel' });
+  const ws = UI.week;
+  m.body.innerHTML = '<div class="hint">选择日期范围导出排班表。按整周导出（包含所选日期的每一周），每周一页，格式和纸质排班表一样，可以直接打印。</div>' +
+    rangeControls('ex', ws, addDays(ws, 6)) + '<div class="hint" id="exInfo"></div><div class="btns"><button class="primary" id="exGo">导出排班表</button></div>' +
+    '<div class="hint" style="margin-top:14px">夜班、体检、外勤、法定假加班费看板里各有自己的「导出 Excel」按钮。</div>';
+  const info = (a, b) => { const n = Math.round((fromKey(addDays(weekStart(b), 6)) - fromKey(weekStart(a))) / 864e5 / 7) + 1; $('#exInfo', m.body).textContent = '将导出 ' + fmtYMD(weekStart(a)) + ' – ' + fmtYMD(addDays(weekStart(b), 6)) + '，共 ' + n + ' 周'; };
+  const get = bindRange(m.body, 'ex', info);
+  info(ws, addDays(ws, 6));
+  $('#exGo', m.body).onclick = () => { const [a, b] = get(); if (!isValidKey(a) || !isValidKey(b)) { toast('请选择日期', true); return; } exportSchedule(a, b); toast('已导出'); };
+}
+
+/* ================= 云端同步（GitHub） ================= */
+function b64encode(str) { const bytes = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(bin); }
+function b64decode(b64) { const bin = atob(String(b64).replace(/\s/g, '')); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new TextDecoder().decode(u); }
+const Sync = {
+  cfg: Object.assign({}, GH_DEFAULT, lsGet(LS.gh) || {}),
+  state: 'idle', err: '', timer: null, busy: false, again: false, conflict: null,
+  enabled() { return !!(this.cfg.token && this.cfg.owner && this.cfg.repo && this.cfg.path); },
+  saveCfg() { lsSet(LS.gh, this.cfg); },
+  api(path, opts) {
+    opts = opts || {};
+    const headers = Object.assign({ 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + this.cfg.token, 'X-GitHub-Api-Version': '2022-11-28' }, opts.headers || {});
+    return fetch('https://api.github.com' + path, Object.assign({}, opts, { headers, cache: 'no-store' }));
+  },
+  repoPath() { return '/repos/' + encodeURIComponent(this.cfg.owner) + '/' + encodeURIComponent(this.cfg.repo); },
+  filePath() { return this.repoPath() + '/contents/' + this.cfg.path.split('/').map(encodeURIComponent).join('/'); },
+  async errText(r) {
+    let msg = ''; try { msg = (await r.json()).message || ''; } catch (e) { }
+    if (r.status === 401) return '令牌无效或已过期，请在「设置」里重新填写';
+    if (r.status === 403) return '没有权限：令牌需要这个仓库的 Contents 读写权限' + (msg ? '（' + msg + '）' : '');
+    if (r.status === 404) return '找不到仓库，或者令牌没有授权访问这个仓库';
+    return 'GitHub 返回错误 ' + r.status + (msg ? '：' + msg : '');
+  },
+  async fetchRemote() {
+    const r = await this.api(this.filePath() + '?ref=' + encodeURIComponent(this.cfg.branch));
+    if (r.status === 404) { const rr = await this.api(this.repoPath()); if (!rr.ok) throw new Error(await this.errText(rr)); return { missing: true }; }
+    if (!r.ok) throw new Error(await this.errText(r));
+    const j = await r.json();
+    let text;
+    if (j.content && j.encoding === 'base64') text = b64decode(j.content);
+    else { const bl = await this.api(this.repoPath() + '/git/blobs/' + j.sha); if (!bl.ok) throw new Error(await this.errText(bl)); text = b64decode((await bl.json()).content); }
+    let data; try { data = JSON.parse(text); } catch (e) { throw new Error('云端数据文件格式不对，无法读取'); }
+    return { sha: j.sha, data };
+  },
+  async putRemote(data, sha) {
+    const body = { message: '更新排班数据 ' + new Date().toLocaleString('zh-CN', { hour12: false }), content: b64encode(JSON.stringify(data, null, 1)), branch: this.cfg.branch };
+    if (sha) body.sha = sha;
+    const r = await this.api(this.filePath(), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (r.status === 409 || r.status === 422) return { conflict: true };
+    if (!r.ok) throw new Error(await this.errText(r));
+    return { sha: (await r.json()).content.sha };
+  },
+  schedule(ms) { this.renderChip(); if (!this.enabled() || this.conflict) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.run(), ms || 2500); },
+  async run() {
+    if (!this.enabled() || this.conflict) { this.renderChip(); return; }
+    if (this.busy) { this.again = true; return; }
+    clearTimeout(this.timer);
+    this.busy = true; this.setState('syncing');
+    try {
+      if (META.dirty) {
+        const revAtStart = LOCAL_REV, snapshot = clone(D);
+        let res = await this.putRemote(snapshot, META.sha);
+        if (res.conflict) {
+          const remote = await this.fetchRemote();
+          if (remote.missing) res = await this.putRemote(snapshot, null);
+          else if (remote.sha === META.sha) throw new Error('保存到 GitHub 失败，请稍后重试');
+          else { this.conflict = remote; this.setState('conflict'); openConflict(); return; }
+          if (res.conflict) throw new Error('保存到 GitHub 失败，请稍后重试');
+        }
+        META.sha = res.sha;
+        if (LOCAL_REV === revAtStart) META.dirty = false;
+      } else {
+        const remote = await this.fetchRemote();
+        if (remote.missing) { const res = await this.putRemote(clone(D), null); if (res.conflict) throw new Error('创建云端数据文件失败'); META.sha = res.sha; }
+        else if (remote.sha !== META.sha) {
+          if (!META.sha || (remote.data.rev || 0) >= (D.rev || 0)) { replaceData(remote.data); META.sha = remote.sha; }
+        }
+      }
+      META.lastSync = Date.now(); lsSet(LS.meta, META); this.err = ''; this.setState('ok');
+    } catch (e) {
+      this.err = (e && e.message) || String(e);
+      if (/Failed to fetch|NetworkError|Load failed|network/i.test(this.err)) this.err = '连不上 GitHub（网络问题），修改已保存在本机，恢复网络后会自动上传';
+      lsSet(LS.meta, META); this.setState(navigator.onLine === false ? 'offline' : 'error');
+    } finally {
+      this.busy = false;
+      if (this.again || (META.dirty && this.state === 'ok')) { this.again = false; this.schedule(800); }
+    }
+  },
+  setState(s) { this.state = s; this.renderChip(); },
+  renderChip() {
+    const el = $('#syncChip'); if (!el) return;
+    let cls, txt;
+    if (!this.enabled()) { cls = 'grey'; txt = '本地模式'; }
+    else if (this.state === 'conflict') { cls = 'red'; txt = '数据冲突'; }
+    else if (this.state === 'syncing') { cls = 'blue'; txt = '同步中…'; }
+    else if (this.state === 'error') { cls = 'red'; txt = '同步失败'; }
+    else if (this.state === 'offline') { cls = 'orange'; txt = '离线·待同步'; }
+    else if (META.dirty) { cls = 'orange'; txt = '待同步'; }
+    else if (META.lastSync) { cls = 'green'; txt = '已同步 ' + hhmm(META.lastSync); }
+    else { cls = 'blue'; txt = '连接中…'; }
+    el.className = 'sync-chip ' + cls; el.textContent = '● ' + txt;
+  }
+};
+function dataSummary(d) { return (d.people || []).length + ' 人 · ' + (d.periods || []).length + ' 个排班期间 · 最后修改 ' + fmtTime(d.updatedAt); }
+function openConflict() {
+  const remote = Sync.conflict; if (!remote) return;
+  const m = openModal({ title: '本机和云端的数据不一致' });
+  m.body.innerHTML = '<p style="line-height:1.7">本机有还没上传的修改，但云端的数据也被改过了（可能是在另一台设备上改的，或者这台设备第一次连接云端）。请选择保留哪一份：</p>' +
+    '<div class="cmp"><div><b>云端数据</b><div class="hint">' + esc(dataSummary(remote.data)) + '</div></div><div><b>本机数据</b><div class="hint">' + esc(dataSummary(D)) + '</div></div></div>' +
+    '<div class="btns-col"><button class="primary" data-a="remote">使用云端数据（放弃本机没上传的修改）</button><button data-a="local">使用本机数据（覆盖云端）</button><button data-a="backup">先把本机数据导出备份</button></div>';
+  $('[data-a=remote]', m.body).onclick = () => { replaceData(remote.data); META.sha = remote.sha; META.dirty = false; META.lastSync = Date.now(); lsSet(LS.meta, META); Sync.conflict = null; Sync.setState('ok'); m.close(); toast('已使用云端数据'); };
+  $('[data-a=local]', m.body).onclick = () => { D.rev = Math.max(D.rev || 0, remote.data.rev || 0) + 1; lsSet(LS.data, D); META.sha = remote.sha; META.dirty = true; lsSet(LS.meta, META); Sync.conflict = null; m.close(); Sync.run(); };
+  $('[data-a=backup]', m.body).onclick = exportBackup;
+}
+function exportBackup() {
+  downloadBlob(new Blob([JSON.stringify(D, null, 1)], { type: 'application/json' }), '排班数据备份_' + todayKey() + '.json');
+  toast('备份文件已导出');
+}
+function openSettings() {
+  const m = openModal({ title: '设置', wide: false });
+  const draw = () => {
+    const c = Sync.cfg;
+    const status = !Sync.enabled() ? '未连接（数据只保存在这台设备上）' : Sync.state === 'error' || Sync.state === 'offline' ? '同步失败：' + Sync.err : Sync.state === 'conflict' ? '数据冲突，等待你选择' : META.lastSync ? '已连接，上次同步 ' + fmtTime(new Date(META.lastSync).toISOString()) : '已连接';
+    m.body.innerHTML = '<div class="sec-t first">云端同步（GitHub）</div>' +
+      '<div class="hint" style="color:' + (Sync.state === 'error' ? 'var(--red)' : 'inherit') + '">状态：' + esc(status) + '</div>' +
+      '<div class="row"><label class="f">仓库所有者<input id="ghO" value="' + esc(c.owner) + '"></label><label class="f">仓库名<input id="ghR" value="' + esc(c.repo) + '"></label></div>' +
+      '<div class="row"><label class="f">分支<input id="ghB" value="' + esc(c.branch) + '" style="width:110px"></label><label class="f">数据文件<input id="ghP" value="' + esc(c.path) + '" style="width:140px"></label></div>' +
+      '<div class="row"><label class="f grow">访问令牌<input id="ghT" type="password" autocomplete="off" placeholder="' + (c.token ? '已保存（要更换就粘贴新的）' : '粘贴在 GitHub 生成的令牌') + '"></label></div>' +
+      '<div class="btns"><button class="primary" id="ghSave">保存并连接</button>' + (Sync.enabled() ? '<button id="ghNow">立即同步</button><button class="danger" id="ghOff">断开连接</button>' : '') + '</div>' +
+      '<details><summary>怎么生成令牌？</summary><ol>' +
+      '<li>电脑上登录 GitHub，打开 <b>github.com/settings/personal-access-tokens/new</b></li>' +
+      '<li>Token name 随便填，比如「排班平板」；Expiration 选 1 年（到期后回来换一个新的）</li>' +
+      '<li>Repository access 选 <b>Only select repositories</b>，只勾选数据仓库 <b>' + esc(c.repo) + '</b></li>' +
+      '<li>Permissions → Repository permissions → <b>Contents</b> 改成 <b>Read and write</b></li>' +
+      '<li>点 Generate token，复制生成的令牌，粘贴到上面的「访问令牌」</li></ol>' +
+      '每台设备第一次使用时粘贴一次。平板丢了，去 GitHub 把这个令牌删掉就行。</details>' +
+      '<div class="sec-t">备份</div><div class="hint">连上 GitHub 后，每次保存都会在云端留下历史版本。这里可以另外导出一份备份文件。</div>' +
+      '<div class="btns"><button id="bkOut">导出备份文件</button><button id="bkIn">导入备份文件</button><input type="file" id="bkFile" accept=".json,application/json" style="display:none"></div>' +
+      '<div class="sec-t">其他</div><div class="row"><label class="f grow">表格标题<input id="stTitle" value="' + esc(D.title) + '"></label><button id="stSave">保存标题</button></div>' +
+      '<div class="hint">版本 v' + APP_VERSION + ' · 数据已修改 ' + (D.rev || 0) + ' 次</div>';
+    $('#ghSave', m.body).onclick = async () => {
+      const n = { owner: $('#ghO', m.body).value.trim(), repo: $('#ghR', m.body).value.trim(), branch: $('#ghB', m.body).value.trim() || 'main', path: $('#ghP', m.body).value.trim() || 'data.json' };
+      const tok = $('#ghT', m.body).value.trim();
+      if (!n.owner || !n.repo) { toast('请填写仓库所有者和仓库名', true); return; }
+      if (!tok && !c.token) { toast('请粘贴访问令牌', true); return; }
+      const changedTarget = n.owner !== c.owner || n.repo !== c.repo || n.branch !== c.branch || n.path !== c.path;
+      Object.assign(Sync.cfg, n); if (tok) Sync.cfg.token = tok;
+      Sync.saveCfg();
+      if (changedTarget || tok) { META.sha = null; lsSet(LS.meta, META); }
+      Sync.conflict = null;
+      await Sync.run();
+      draw();
+      if (Sync.state === 'ok') toast('已连接 GitHub，数据已同步');
+      else if (Sync.state === 'error' || Sync.state === 'offline') toast(Sync.err, true);
+    };
+    if (Sync.enabled()) {
+      $('#ghNow', m.body).onclick = async () => { if (Sync.conflict) { openConflict(); return; } await Sync.run(); draw(); toast(Sync.state === 'ok' ? '同步完成' : Sync.err, Sync.state !== 'ok'); };
+      $('#ghOff', m.body).onclick = async () => {
+        if (!await confirmBox('断开 GitHub 连接？\n数据仍然保留在这台设备上，只是不再自动同步。' + (META.dirty ? '\n注意：还有修改没上传到云端。' : ''), '断开', true)) return;
+        Sync.cfg.token = ''; Sync.saveCfg(); META.sha = null; lsSet(LS.meta, META); Sync.conflict = null; Sync.setState('idle'); draw();
+      };
+    }
+    $('#bkOut', m.body).onclick = exportBackup;
+    $('#bkIn', m.body).onclick = () => $('#bkFile', m.body).click();
+    $('#bkFile', m.body).onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      let data; try { data = JSON.parse(await f.text()); } catch (err) { alertBox('导入失败', '这个文件不是有效的备份文件。'); return; }
+      if (!data || !Array.isArray(data.people) || typeof data.cells !== 'object') { alertBox('导入失败', '这个文件不是排班系统的备份文件。'); return; }
+      if (!await confirmBox('导入会用备份文件覆盖现在的全部数据。\n备份文件：' + dataSummary(data) + '\n当前数据：' + dataSummary(D) + (Sync.enabled() ? '\n导入后会同步到云端。' : ''), '覆盖导入', true)) return;
+      const rev = Math.max(D.rev || 0, data.rev || 0);
+      D = normalize(data); D.rev = rev; commit(); toast('导入完成'); draw();
+    };
+    $('#stSave', m.body).onclick = () => { const t = $('#stTitle', m.body).value.trim(); if (!t) return; D.title = t; commit(); toast('已保存'); };
+  };
+  draw();
+}
+
+/* ================= 启动 ================= */
+function onAction(act) {
+  ({ schedule: openSchedule, people: openPeople, adjust: openAdjust, field: openField, legal: openLegal, night: openNightBoard, exam: openExamBoard, export: openExport, settings: openSettings })[act]();
+}
+function init() {
+  $$('[data-act]').forEach(b => b.onclick = () => onAction(b.dataset.act));
+  $('#prevWeek').onclick = () => gotoWeek(addDays(UI.week, -7));
+  $('#nextWeek').onclick = () => gotoWeek(addDays(UI.week, 7));
+  $('#thisWeek').onclick = () => gotoWeek(todayKey());
+  $('#jumpDate').onchange = e => { if (isValidKey(e.target.value)) gotoWeek(e.target.value); };
+  $('#grid').addEventListener('click', onGridClick);
+  $('#syncChip').onclick = () => {
+    if (!Sync.enabled()) openSettings();
+    else if (Sync.conflict) openConflict();
+    else if (Sync.state === 'error' || Sync.state === 'offline') alertBox('同步失败', Sync.err + '\n\n可以在「设置」里检查仓库和令牌，或点「立即同步」重试。');
+    else Sync.run();
+  };
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { const t = topModal(); if (t) t.close(); return; }
+    if (topModal() || /INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || '')) return;
+    if (e.key === 'ArrowLeft') gotoWeek(addDays(UI.week, -7));
+    if (e.key === 'ArrowRight') gotoWeek(addDays(UI.week, 7));
+  });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') Sync.run(); });
+  window.addEventListener('online', () => Sync.run());
+  setInterval(() => { if (document.visibilityState === 'visible' && !Sync.busy) Sync.run(); }, 90000);
+  render();
+  if (Sync.enabled()) Sync.run();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
+}
+init();
+</script>
+</body>
+</html>

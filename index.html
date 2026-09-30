@@ -147,6 +147,7 @@ label.f input,label.f select{color:var(--text)}
 .prow.dragging{box-shadow:0 6px 18px rgba(0,0,0,.18);border-color:var(--primary);position:relative;z-index:2}
 .prow .handle{font-size:22px;color:#9aa3ae;padding:4px 8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .prow .pinfo{flex:1;min-width:0}
+.prow .mv{min-width:42px;min-height:38px;font-size:17px;padding:2px 8px}
 .prow .pinfo .small{font-size:12px;color:var(--muted)}
 .plist.sealed .prow{background:#f5f6f8;color:#9aa3ae}
 .tag{display:inline-block;font-size:12px;border-radius:5px;padding:0 6px;background:#eef2f6;color:#4a5563;margin-left:4px}
@@ -231,7 +232,7 @@ details ol{padding-left:20px;margin:8px 0;line-height:1.8}
 <script>
 'use strict';
 /* ================= 常量 ================= */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 const GH_DEFAULT = { owner: 'zack-zhu-ai', repo: 'paiban-data', branch: 'main', path: 'data.json', token: '' };
 const SHIFT_VALUE = { '白': 1, '主': 1, '夜': 2, '下': 0, '休': 0, '值': 3 };
 const SHIFT_CLS = { '白': 'bai', '主': 'zhu', '夜': 'ye', '下': 'xia', '休': 'xiu', '值': 'zhi' };
@@ -860,11 +861,12 @@ function openPeople() {
   const m = openModal({ title: '人员管理' });
   const draw = () => {
     const act = D.people.filter(p => !p.sealed), sealed = D.people.filter(p => p.sealed);
-    const row = p => '<div class="prow" data-id="' + p.id + '">' + (p.sealed ? '' : '<span class="handle" title="拖动排序">≡</span>') +
+    const row = (p, i, arr) => '<div class="prow" data-id="' + p.id + '">' + (p.sealed ? '' : '<span class="handle" title="拖动排序">≡</span>') +
       '<div class="pinfo"><b>' + esc(p.name) + '</b><span class="tag ' + (p.type === 'temp' ? 'temp' : '') + '">' + (p.type === 'temp' ? '临时' : '常驻') + '</span>' +
       '<div class="small">' + (p.type === 'resident' ? '期初加班余额 ' + fmtNum(p.initBalance || 0) + (p.since ? '，从 ' + fmtYMD(p.since) + ' 所在周起算' : '') + ' · 当前剩余 ' + fmtNum(balanceAt(p, weekStart(todayKey()))) : '只记班次，不算加班') + (p.sealed && p.sealedAt ? ' · ' + fmtYMD(p.sealedAt) + ' 封存' : '') + '</div></div>' +
+      (p.sealed ? '' : '<button class="sm mv" data-mv="-1"' + (i === 0 ? ' disabled' : '') + ' aria-label="上移">↑</button><button class="sm mv" data-mv="1"' + (i === arr.length - 1 ? ' disabled' : '') + ' aria-label="下移">↓</button>') +
       '<button class="sm" data-edit>编辑</button><button class="sm ' + (p.sealed ? '' : 'danger') + '" data-seal>' + (p.sealed ? '启用' : '封存') + '</button></div>';
-    m.body.innerHTML = '<div class="hint">按住左边的 ≡ 上下拖动，可以调整排班表里的顺序。</div>' +
+    m.body.innerHTML = '<div class="hint">调整排班表里的顺序：点 ↑ ↓ 移动一位，或者按住左边的 ≡ 上下拖动。</div>' +
       '<div class="plist" id="plAct">' + (act.map(row).join('') || '<div class="hint">还没有人员</div>') + '</div>' +
       (sealed.length ? '<div class="sec-t">已封存（灰色，排在最下面）</div><div class="plist sealed">' + sealed.map(row).join('') + '</div>' : '') +
       '<div class="sec-t">添加人员</div>' +
@@ -887,6 +889,13 @@ function openPeople() {
     $$('.prow', m.body).forEach(r => {
       const p = personById(r.dataset.id);
       $('[data-edit]', r).onclick = () => openEditPerson(p, draw);
+      $$('[data-mv]', r).forEach(b => b.onclick = () => {
+        const act = D.people.filter(x => !x.sealed), i = act.indexOf(p), j = i + Number(b.dataset.mv);
+        if (i < 0 || j < 0 || j >= act.length) return;
+        act[i] = act[j]; act[j] = p;
+        D.people = act.concat(D.people.filter(x => x.sealed));
+        commit(); draw();
+      });
       $('[data-seal]', r).onclick = async () => {
         if (!p.sealed && !await confirmBox('封存「' + p.name + '」？\n封存后不再出现在新的排班周里，历史数据保留，随时可以启用。', '封存')) return;
         p.sealed = !p.sealed; p.sealedAt = p.sealed ? todayKey() : null;

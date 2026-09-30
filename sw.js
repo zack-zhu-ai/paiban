@@ -1,5 +1,5 @@
 // 离线缓存：联网时总是取最新版本，断网时用缓存
-const CACHE = 'paiban-v1';
+const CACHE = 'paiban-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
